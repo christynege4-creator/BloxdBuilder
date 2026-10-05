@@ -13,7 +13,7 @@
     <canvas id="scene" role="img" aria-label="Interactive 3D world preview">Interactive 3D world preview</canvas>
     <div class="hud">
       <div class="topbar">
-        <a class="top-link" href="/index.html">← Leave</a>
+        <a class="top-link" href="/index.html" id="leave-builder">← Leave builder</a>
         <span class="top-title">World Builder</span>
         <div class="top-actions">
           <a class="top-link" href="/workshop.html">Workshop</a>
@@ -30,6 +30,7 @@
       <div class="play-overlay" id="overlay">
         <h2>⛏ World Builder</h2>
         <p class="muted">Click to play</p>
+        <a class="btn btn-ghost overlay-leave" href="/index.html">← Exit to Home</a>
         <div class="controls">
           <span><b>WASD</b> move</span>
           <span><b>Space / Shift</b> up / down</span>
@@ -83,6 +84,12 @@
             <button class="btn btn-ghost" id="export-btn" type="button">Export JSON</button>
             <button class="btn btn-ghost" id="import-btn" type="button">Import JSON</button>
           </div>
+          <div class="io-row">
+            <button class="btn btn-primary" id="export-schematic-btn" type="button">Download .bloxdschem</button>
+            <label class="btn btn-ghost file-button" for="schematic-file">Import .bloxdschem</label>
+            <input class="visually-hidden" id="schematic-file" type="file" accept=".bloxdschem,.json,application/json">
+          </div>
+          <p class="muted small" id="schematic-status" aria-live="polite">Bloxd schematics are saved as .bloxdschem files.</p>
         </div>
       </div>
     </div>
@@ -383,10 +390,14 @@
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-  overlay.addEventListener("click", () => {
+  overlay.addEventListener("click", (event) => {
+    if (event.target.closest("a, button")) return;
     started = true;
     tryLock();
     refreshOverlay();
+  });
+  document.getElementById("leave-builder").addEventListener("click", () => {
+    document.exitPointerLock?.();
   });
 
   const keys = {};
@@ -597,6 +608,51 @@ console.log("Built a gold platform!");
       }
     } catch {
       alert("That isn't valid JSON.");
+    }
+  });
+
+  function exportSchematic() {
+    return {
+      size: [SX, SY, SZ],
+      palette: PALETTE.map((block) => block ? block.name : null),
+      world: Array.from(world),
+    };
+  }
+  function isValidSchematic(data) {
+    return data && Array.isArray(data.size) && data.size.join() === `${SX},${SY},${SZ}` &&
+      Array.isArray(data.world) && data.world.length === SX * SY * SZ &&
+      data.world.every((id) => Number.isInteger(id) && id >= 0 && id < PALETTE.length);
+  }
+  function downloadSchematic(data) {
+    const blob = new Blob([JSON.stringify(data)], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "world.bloxdschem";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  document.getElementById("export-schematic-btn").addEventListener("click", () => {
+    downloadSchematic(exportSchematic());
+    document.getElementById("schematic-status").textContent = "Downloaded world.bloxdschem.";
+  });
+  document.getElementById("schematic-file").addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const status = document.getElementById("schematic-status");
+    try {
+      const data = JSON.parse(await file.text());
+      if (!isValidSchematic(data)) {
+        throw new Error(`Expected a valid ${SX}×${SY}×${SZ} Bloxd schematic.`);
+      }
+      world = Uint8Array.from(data.world);
+      rebuildAll();
+      save();
+      status.textContent = `Imported ${file.name}.`;
+    } catch (error) {
+      status.textContent = error.message || "Could not import this schematic.";
+    } finally {
+      event.target.value = "";
     }
   });
 
