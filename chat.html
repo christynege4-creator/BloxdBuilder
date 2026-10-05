@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat — BloxdBuilder</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
+  <script src="/theme.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="/index.html"><img src="/BloxdBuilderLogo.png" alt=""><span>BloxdBuilder</span></a>
+    <a class="link" href="/index.html"><span class="nav-icon">⌂</span>Home</a>
+    <a class="link" href="/world-builder.html"><span class="nav-icon">▦</span>World Builder</a>
+    <a class="link" href="/script-editor.html"><span class="nav-icon">⌘</span>Script Editor</a>
+    <a class="link active" href="/chat.html" aria-current="page"><span class="nav-icon">◌</span>Chat</a>
+    <a class="link" href="/workshop.html"><span class="nav-icon">◇</span>Workshop</a>
+    <a class="link" href="/index.html#settings"><span class="nav-icon">⚙</span>Settings</a>
+  </nav>
+
+  <main class="container chat-container">
+    <div class="page-head">
+      <h1>Chat</h1>
+      <p class="muted">Plan your world with BloxdBot. History is kept in this browser.</p>
+    </div>
+
+    <div class="panel chat-panel">
+      <div class="messages" id="messages" role="log" aria-label="Chat history" aria-live="polite" aria-relevant="additions"></div>
+      <form class="chat-form" id="chat-form">
+        <input id="chat-input" type="text" aria-label="Chat message" autocomplete="off" placeholder="Type a message…">
+        <button class="btn btn-primary" type="submit">Send</button>
+        <button class="btn btn-ghost" type="button" id="clear-chat">Clear</button>
+      </form>
+    </div>
+  </main>
+
+<script>
+  const STORE_KEY = "bloxd.chat";
+  const messagesEl = document.getElementById("messages");
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("chat-input");
+
+  const REPLIES = [
+    "Nice! Try mixing grass and stone layers for natural-looking terrain.",
+    "Pro tip: place wood columns 3 blocks apart, then fill leaves between them for trees.",
+    "The Script Editor can animate your world — try setting a block every second.",
+    "Gold looks best as a rare vein: one block per 40 in your stone layer.",
+    "Water flows at the edges in bloxd — leave a sand border so it reads cleanly.",
+    "When you're happy with the layout, open Settings and export a JSON backup. The Export & Import guide has the steps.",
+  ];
+  let replyIndex = 0;
+
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (Array.isArray(saved) && saved.every((message) =>
+        message && (message.who === "bot" || message.who === "user") && typeof message.text === "string"
+      )) return saved;
+    } catch {}
+    return [{ who: "bot", text: "Hey builder! 👋 I'm BloxdBot. Ask me anything about building your world." }];
+  }
+
+  let messages = load();
+
+  function render() {
+    messagesEl.replaceChildren();
+    for (const message of messages) {
+      const row = document.createElement("div");
+      row.className = `msg ${message.who}`;
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.textContent = message.text;
+      row.append(bubble);
+      messagesEl.append(row);
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function persist() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(messages.slice(-100)));
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    messages.push({ who: "user", text });
+    input.value = "";
+    messages.push({ who: "bot", text: REPLIES[replyIndex++ % REPLIES.length] });
+    render();
+    persist();
+  });
+
+  document.getElementById("clear-chat").addEventListener("click", () => {
+    messages = [{ who: "bot", text: "Chat cleared. What's the next build?" }];
+    render();
+    persist();
+  });
+
+  render();
+</script>
+</body>
+</html>

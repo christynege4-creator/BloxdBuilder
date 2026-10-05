@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Make local BloxdBuilder texture-pack manifests, write JavaScript mods, and manage world schematics.">
+  <title>Workshop — BloxdBuilder</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
+  <script src="/theme.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="/index.html"><img src="/BloxdBuilderLogo.png" alt=""><span>BloxdBuilder</span></a>
+    <a class="link" href="/index.html"><span class="nav-icon">⌂</span>Home</a>
+    <a class="link" href="/world-builder.html"><span class="nav-icon">▦</span>World Builder</a>
+    <a class="link" href="/script-editor.html"><span class="nav-icon">⌘</span>Script Editor</a>
+    <a class="link" href="/chat.html"><span class="nav-icon">◌</span>Chat</a>
+    <a class="link active" href="/workshop.html" aria-current="page"><span class="nav-icon">◇</span>Workshop</a>
+    <a class="link" href="/index.html#settings"><span class="nav-icon">⚙</span>Settings</a>
+  </nav>
+
+  <main class="container workshop">
+    <header class="page-head">
+      <h1>Workshop</h1>
+      <p class="muted">Make local texture-pack manifests, write JavaScript mod drafts, and manage your schematics.</p>
+    </header>
+
+    <nav class="workshop-tabs" aria-label="Workshop sections">
+      <a href="#tpacks">Texture packs</a>
+      <a href="#mods">Mods (code)</a>
+      <a href="#schematics">Schematics</a>
+    </nav>
+
+    <section class="panel workshop-section" id="tpacks" aria-labelledby="tpacks-title">
+      <div class="page-head">
+        <h2 id="tpacks-title">Texture packs</h2>
+        <p class="muted">Choose image files to bundle into a portable, local BloxdBuilder pack manifest.</p>
+      </div>
+      <label class="workshop-field" for="tpack-name">Pack name
+        <input id="tpack-name" type="text" maxlength="60" value="My texture pack">
+      </label>
+      <label class="workshop-field" for="tpack-files">Texture images
+        <input id="tpack-files" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+      </label>
+      <p class="muted small">Images are read in your browser and included in the downloaded JSON manifest. This creates a local pack file; it does not install textures into Bloxd.</p>
+      <div id="tpack-preview" class="tpack-preview" aria-live="polite"></div>
+      <button class="btn btn-primary" id="tpack-download" type="button" disabled>Download pack manifest</button>
+      <p id="tpack-status" class="muted small" aria-live="polite">Select at least one image to build a manifest.</p>
+    </section>
+
+    <section class="panel workshop-section" id="mods" aria-labelledby="mods-title">
+      <div class="page-head">
+        <h2 id="mods-title">Mods (code)</h2>
+        <p class="muted">Write and keep a JavaScript mod draft in this browser, or download it as a <code>.js</code> file.</p>
+      </div>
+      <label class="workshop-field" for="mod-name">Mod name
+        <input id="mod-name" type="text" maxlength="60" value="my-mod">
+      </label>
+      <label class="workshop-field" for="mod-code">JavaScript source
+        <textarea id="mod-code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="JavaScript mod code"></textarea>
+      </label>
+      <div class="workshop-actions">
+        <button class="btn btn-ghost" id="mod-save" type="button">Save draft</button>
+        <button class="btn btn-primary" id="mod-download" type="button">Download .js</button>
+        <span id="mod-status" class="muted small" aria-live="polite">Drafts are saved in this browser.</span>
+      </div>
+      <p class="muted small">Code is saved and downloaded, not executed by this page. Review a mod before using it in any game or tool.</p>
+    </section>
+
+    <section class="panel workshop-section" id="schematics" aria-labelledby="schematics-title">
+      <div class="page-head">
+        <h2 id="schematics-title">Schematics</h2>
+        <p class="muted">Export your current World Builder world or import a previously exported world JSON file.</p>
+      </div>
+      <div class="workshop-actions">
+        <button class="btn btn-primary" id="schematic-export" type="button">Export current world</button>
+        <label class="btn btn-ghost file-button" for="schematic-file">Import world JSON</label>
+        <input id="schematic-file" class="visually-hidden" type="file" accept=".json,.bloxdschem,application/json">
+      </div>
+      <p id="schematic-status" class="muted small" aria-live="polite">Worlds stay in this browser unless you export them.</p>
+      <pre id="schematic-preview" class="workshop-preview" hidden></pre>
+    </section>
+  </main>
+
+  <footer class="footer">Workshop files are generated locally in your browser.</footer>
+
+  <script>
+    const MOD_KEY = "bloxd.workshop.mod";
+    const DEFAULT_MOD = `// BloxdBuilder workshop mod draft
+// Add your JavaScript code here. This page saves the draft but does not run it.
+
+function describeWorld(world) {
+  if (!world || !Array.isArray(world.world)) {
+    return "No saved world found.";
+  }
+
+  const counts = {};
+  for (const blockId of world.world) {
+    if (blockId !== 0) {
+      counts[blockId] = (counts[blockId] || 0) + 1;
+    }
+  }
+
+  return counts;
+}
+`;
+    const modName = document.getElementById("mod-name");
+    const modCode = document.getElementById("mod-code");
+    const modStatus = document.getElementById("mod-status");
+
+    function safeFileName(name, fallback) {
+      const cleaned = name.trim().replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "");
+      return cleaned || fallback;
+    }
+
+    function downloadFile(name, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function readSavedMod() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(MOD_KEY) || "null");
+        if (saved && typeof saved.name === "string" && typeof saved.code === "string") {
+          modName.value = saved.name;
+          modCode.value = saved.code;
+          return;
+        }
+      } catch {
+        modStatus.textContent = "Could not read the saved draft; starting with the example.";
+      }
+      modCode.value = DEFAULT_MOD;
+    }
+
+    document.getElementById("mod-save").addEventListener("click", () => {
+      try {
+        localStorage.setItem(MOD_KEY, JSON.stringify({ name: modName.value, code: modCode.value }));
+        modStatus.textContent = "Draft saved in this browser.";
+      } catch {
+        modStatus.textContent = "Draft could not be saved. Check browser storage availability.";
+      }
+    });
+    document.getElementById("mod-download").addEventListener("click", () => {
+      downloadFile(`${safeFileName(modName.value, "my-mod")}.js`, modCode.value, "text/javascript;charset=utf-8");
+      modStatus.textContent = "JavaScript file downloaded.";
+    });
+    readSavedMod();
+
+    const tpackFiles = document.getElementById("tpack-files");
+    const tpackPreview = document.getElementById("tpack-preview");
+    const tpackDownload = document.getElementById("tpack-download");
+    const tpackStatus = document.getElementById("tpack-status");
+    let tpackEntries = [];
+
+    tpackFiles.addEventListener("change", async () => {
+      tpackEntries = [];
+      tpackPreview.replaceChildren();
+      tpackDownload.disabled = true;
+      const files = [...tpackFiles.files];
+      if (!files.length) {
+        tpackStatus.textContent = "Select at least one image to build a manifest.";
+        return;
+      }
+
+      try {
+        for (const file of files) {
+          if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+            throw new Error(`${file.name} is not a PNG, JPEG, or WebP image.`);
+          }
+          if (!file.size || file.size > 8 * 1024 * 1024) {
+            throw new Error(`${file.name} must be between 1 byte and 8 MB.`);
+          }
+          const data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.addEventListener("load", () => resolve(reader.result));
+            reader.addEventListener("error", () => reject(new Error(`Could not read ${file.name}.`)));
+            reader.readAsDataURL(file);
+          });
+          const image = new Image();
+          image.src = data;
+          await image.decode().catch(() => { throw new Error(`${file.name} is not a readable image.`); });
+          tpackEntries.push({ name: file.name, type: file.type, data });
+          const preview = document.createElement("div");
+          preview.className = "tpack-tile";
+          const thumbnail = document.createElement("img");
+          thumbnail.src = data;
+          thumbnail.alt = file.name;
+          const label = document.createElement("span");
+          label.textContent = file.name;
+          preview.append(thumbnail, label);
+          tpackPreview.append(preview);
+        }
+        tpackDownload.disabled = false;
+        tpackStatus.textContent = `${tpackEntries.length} texture image${tpackEntries.length === 1 ? "" : "s"} ready for export.`;
+      } catch (error) {
+        tpackEntries = [];
+        tpackPreview.replaceChildren();
+        tpackStatus.textContent = error.message;
+      }
+    });
+
+    tpackDownload.addEventListener("click", () => {
+      const pack = {
+        format: "bloxdbuilder-texture-pack",
+        version: 1,
+        name: document.getElementById("tpack-name").value.trim() || "My texture pack",
+        textures: tpackEntries
+      };
+      downloadFile(`${safeFileName(pack.name, "texture-pack")}.bloxdpack.json`, JSON.stringify(pack, null, 2), "application/json;charset=utf-8");
+      tpackStatus.textContent = "Texture-pack manifest downloaded.";
+    });
+
+    const schematicStatus = document.getElementById("schematic-status");
+    const schematicPreview = document.getElementById("schematic-preview");
+    function isSchematic(data) {
+      return data && Array.isArray(data.size) &&
+        data.size[0] === 24 && data.size[1] === 16 && data.size[2] === 24 &&
+        Array.isArray(data.world) && data.world.length === 24 * 16 * 24 &&
+        data.world.every(value => Number.isInteger(value) && value >= 0 && value <= 14);
+    }
+
+    document.getElementById("schematic-export").addEventListener("click", () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem("bloxd.world3d") || "null");
+        if (!isSchematic(saved)) {
+          schematicStatus.textContent = "No valid saved world was found. Open the World Builder first to create one.";
+          return;
+        }
+        const json = JSON.stringify(saved, null, 2);
+        downloadFile("world.bloxdschem", json, "application/json;charset=utf-8");
+        schematicPreview.textContent = json.slice(0, 1200) + (json.length > 1200 ? "\n…" : "");
+        schematicPreview.hidden = false;
+        schematicStatus.textContent = "Schematic exported from the saved World Builder world.";
+      } catch {
+        schematicStatus.textContent = "The saved world could not be read.";
+      }
+    });
+
+    document.getElementById("schematic-file").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        if (!isSchematic(data)) {
+          throw new Error("This file is not a valid BloxdBuilder world schematic.");
+        }
+        localStorage.setItem("bloxd.world3d", JSON.stringify(data));
+        schematicStatus.textContent = `Imported ${file.name}. Open or reload the World Builder to use it.`;
+        schematicPreview.textContent = JSON.stringify({ size: data.size, blocks: data.world.filter(Boolean).length }, null, 2);
+        schematicPreview.hidden = false;
+      } catch (error) {
+        schematicStatus.textContent = error.message || "Could not import this schematic.";
+      } finally {
+        event.target.value = "";
+      }
+    });
+  </script>
+</body>
+</html>

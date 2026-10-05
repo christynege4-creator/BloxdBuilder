@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Builder — BloxdBuilder</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
+  <script src="/theme.js"></script>
+</head>
+<body class="game-page">
+  <div class="game">
+    <canvas id="scene" role="img" aria-label="Interactive 3D world preview">Interactive 3D world preview</canvas>
+    <div class="hud">
+      <div class="topbar">
+        <a class="top-link" href="/index.html">← Leave</a>
+        <span class="top-title">World Builder</span>
+        <div class="top-actions">
+          <a class="top-link" href="/workshop.html">Workshop</a>
+          <button class="icon-btn" id="shop-btn" type="button" title="Shop (B)" aria-label="Shop">🛒</button>
+          <button class="icon-btn" id="settings-btn" type="button" title="Settings" aria-label="Settings">⚙</button>
+        </div>
+      </div>
+
+      <div class="crosshair" aria-hidden="true"></div>
+
+      <div class="coins-badge" id="coins-badge">🪙 0</div>
+      <div class="hotbar" id="hotbar"></div>
+
+      <div class="play-overlay" id="overlay">
+        <h2>⛏ World Builder</h2>
+        <p class="muted">Click to play</p>
+        <div class="controls">
+          <span><b>WASD</b> move</span>
+          <span><b>Space / Shift</b> up / down</span>
+          <span><b>Left click</b> break</span>
+          <span><b>Right click</b> place</span>
+          <span><b>1–9 / wheel</b> pick block</span>
+          <span><b>Tab</b> inventory</span>
+          <span><b>X</b> script editor</span>
+          <span><b>B</b> shop</span>
+          <span><b>Esc</b> release mouse</span>
+        </div>
+      </div>
+
+      <div class="game-panel hidden" id="inv-panel">
+        <div class="panel-head"><h3>🎒 Inventory</h3><button class="icon-btn" type="button" data-close aria-label="Close inventory">✕</button></div>
+        <p class="muted small">Click a block to put it in the selected hotbar slot. 🔒 blocks must be bought in the shop (B).</p>
+        <div class="inv-grid" id="inv-grid"></div>
+      </div>
+
+      <div class="game-panel hidden" id="shop-panel">
+        <div class="panel-head"><h3>🛒 Shop</h3><button class="icon-btn" type="button" data-close aria-label="Close shop">✕</button></div>
+        <div class="coins-line">🪙 <b id="shop-coins">0</b> coins — break blocks to earn more</div>
+        <div class="shop-list" id="shop-list"></div>
+      </div>
+
+      <div class="game-panel hidden" id="code-panel">
+        <div class="panel-head"><h3>📜 Script</h3><button class="icon-btn" type="button" data-close aria-label="Close script editor">✕</button></div>
+        <textarea id="code" spellcheck="false" aria-label="World script"></textarea>
+        <div class="io-row">
+          <button class="btn btn-primary" id="code-run" type="button">▶ Run</button>
+          <button class="btn btn-ghost" id="code-save" type="button">Save</button>
+        </div>
+        <pre class="code-output" id="code-output">// Run to see output.
+// API: api.getBlock(x,y,z) · api.setBlock(x,y,z,"grass") · api.size · api.blocks</pre>
+      </div>
+
+      <div class="game-panel hidden" id="settings">
+        <div class="panel-head"><h3>⚙ Settings</h3><button class="icon-btn" type="button" data-close aria-label="Close settings">✕</button></div>
+        <label>Sky
+          <select id="sky">
+            <option value="day">Day</option>
+            <option value="night">Night</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="fog" checked> Fog</label>
+        <label>FOV <input type="range" id="fov" min="60" max="100" value="75"></label>
+        <label>Sensitivity <input type="range" id="sens" min="0.5" max="2" step="0.1" value="1"></label>
+        <div class="settings-io">
+          <textarea id="io" spellcheck="false" aria-label="World JSON for export or import" placeholder="Exported world JSON appears here — paste to import"></textarea>
+          <div class="io-row">
+            <button class="btn btn-ghost" id="export-btn" type="button">Export JSON</button>
+            <button class="btn btn-ghost" id="import-btn" type="button">Import JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+  import * as THREE from "/vendor/three.module.min.js";
+
+  // ---------- World data ----------
+  const SX = 24, SY = 16, SZ = 24;
+  const WORLD_KEY = "bloxd.world3d";
+  const SETTINGS_KEY = "bloxd.settings";
+
+  // Textures are 8×8 pixel-art PNGs from the official Bloxd default pack
+  // (https://github.com/Bloxdy/texture-packs/tree/main/default/textures).
+  const PALETTE = [
+    null,
+    { name: "grass",     label: "Grass",     faces: { top: "grass_top", side: "grass_block_side", bottom: "dirt" } },
+    { name: "dirt",      label: "Dirt",      faces: { all: "dirt" } },
+    { name: "stone",     label: "Stone",     faces: { all: "stone" } },
+    { name: "wood",      label: "Wood",      faces: { all: "planks_elm" } },
+    { name: "leaves",    label: "Leaves",    faces: { all: "leaves_elm" } },
+    { name: "water",     label: "Water",     faces: { all: "water" }, price: 15, opacity: 0.8 },
+    { name: "sand",      label: "Sand",      faces: { all: "sand" } },
+    { name: "gold",      label: "Gold",      faces: { all: "gold_block" }, price: 25 },
+    { name: "bedrock",   label: "Bedrock",   faces: { all: "bedrock" } },
+    { name: "glass",     label: "Glass",     faces: { all: "glass" }, price: 10, opacity: 0.45 },
+    { name: "brick",     label: "Bricks",    faces: { all: "brick" }, price: 12 },
+    { name: "snow",      label: "Snow",      faces: { all: "snow" }, price: 8 },
+    { name: "sandstone", label: "Sandstone", faces: { all: "sandstone_normal" }, price: 10 },
+    { name: "ice",       label: "Ice",       faces: { all: "ice" }, price: 12, opacity: 0.75 },
+  ];
+  const byName = (name) => PALETTE.findIndex((b) => b && b.name === name);
+
+  let world = new Uint8Array(SX * SY * SZ);
+  const idx = (x, y, z) => (y * SZ + z) * SX + x;
+  const get = (x, y, z) => (x < 0 || y < 0 || z < 0 || x >= SX || y >= SY || z >= SZ) ? 0 : world[idx(x, y, z)];
+  const set = (x, y, z, id) => { if (x >= 0 && y >= 0 && z >= 0 && x < SX && y < SY && z < SZ) world[idx(x, y, z)] = id; };
+
+  function starterWorld() {
+    world.fill(0);
+    for (let x = 0; x < SX; x++) {
+      for (let z = 0; z < SZ; z++) {
+        const h = 5 + Math.round(2 * Math.sin(x / 4.5) + 1.5 * Math.cos(z / 3.8) + 1.2 * Math.sin((x + z) / 6));
+        for (let y = 0; y <= Math.min(h, SY - 1); y++) {
+          let id;
+          if (y === 0) id = 9;                 // bedrock
+          else if (y < h - 2) id = 3;          // stone
+          else if (y < h) id = 2;              // dirt
+          else id = 1;                         // grass
+          set(x, y, z, id);
+        }
+      }
+    }
+    // A small pond with sand shores
+    for (let x = 14; x < 20; x++) {
+      for (let z = 14; z < 20; z++) {
+        for (let y = 0; y < SY; y++) {
+          if (get(x, y, z) === 0) continue;
+          const depth = Math.max(x - 13, z - 13, 20 - x, 20 - z);
+          if (depth <= 3) set(x, y, z, y >= 3 ? (y <= 4 ? 6 : 0) : (y >= 2 ? 7 : get(x, y, z)));
+          else set(x, y, z, y >= 4 ? 7 : get(x, y, z));
+        }
+      }
+    }
+    // A tree
+    const tx = 6, tz = 6;
+    const ground = (() => { for (let y = SY - 1; y >= 0; y--) if (get(tx, y, tz) && get(tx, y, tz) !== 6) return y; return 4; })();
+    for (let y = ground + 1; y <= ground + 4; y++) set(tx, y, tz, 4);
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = 3; dy <= 5; dy++) {
+      if (Math.abs(dx) + Math.abs(dz) + Math.abs(dy - 4) <= 3 && get(tx + dx, ground + dy, tz + dz) === 0) set(tx + dx, ground + dy, tz + dz, 5);
+    }
+    // A little gold vein
+    set(10, 3, 10, 8); set(11, 3, 10, 8);
+  }
+
+  function save() {
+    localStorage.setItem(WORLD_KEY, JSON.stringify({
+      size: [SX, SY, SZ],
+      palette: PALETTE.map((b) => b ? b.name : null),
+      world: Array.from(world),
+    }));
+  }
+
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WORLD_KEY));
+      if (saved && saved.size?.join() === `${SX},${SY},${SZ}` && Array.isArray(saved.world) && saved.world.length === SX * SY * SZ) {
+        world = Uint8Array.from(saved.world);
+        return;
+      }
+    } catch {}
+    starterWorld();
+    save();
+  }
+
+  // ---------- Economy: coins, unlocks, hotbar ----------
+  const COINS_KEY = "bloxd.coins", UNLOCKED_KEY = "bloxd.unlocked", HOTBAR_KEY = "bloxd.hotbar";
+  let coins = +(localStorage.getItem(COINS_KEY) ?? 40);
+  let unlocked = new Set(
+    JSON.parse(localStorage.getItem(UNLOCKED_KEY) || "null") ??
+    PALETTE.filter((b) => b && !b.price).map((b) => b.name)
+  );
+  let hotbarIds = JSON.parse(localStorage.getItem(HOTBAR_KEY) || "null") ?? [1, 2, 3, 4, 5, 7, 9, 0, 0];
+
+  function saveEconomy() {
+    localStorage.setItem(COINS_KEY, String(coins));
+    localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...unlocked]));
+    localStorage.setItem(HOTBAR_KEY, JSON.stringify(hotbarIds));
+  }
+
+  const coinsBadge = document.getElementById("coins-badge");
+  const shopCoins = document.getElementById("shop-coins");
+  function renderCoins() {
+    coinsBadge.textContent = `🪙 ${coins}`;
+    shopCoins.textContent = String(coins);
+  }
+
+  // ---------- Settings ----------
+  const settings = Object.assign({ sky: "day", fog: true, fov: 75, sens: 1 },
+    JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
+
+  const skyEl = document.getElementById("sky");
+  const fogEl = document.getElementById("fog");
+  const fovEl = document.getElementById("fov");
+  const sensEl = document.getElementById("sens");
+  skyEl.value = settings.sky; fogEl.checked = settings.fog;
+  fovEl.value = settings.fov; sensEl.value = settings.sens;
+
+  function persistSettings() {
+    settings.sky = skyEl.value; settings.fog = fogEl.checked;
+    settings.fov = +fovEl.value; settings.sens = +sensEl.value;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    applySettings();
+  }
+  for (const el of [skyEl, fogEl, fovEl, sensEl]) el.addEventListener("input", persistSettings);
+
+  // ---------- three.js scene ----------
+  const SKY = { day: 0x8fc7ee, night: 0x0b1026 };
+  const canvas = document.getElementById("scene");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(settings.fov, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.rotation.order = "YXZ";
+
+  const ambient = new THREE.HemisphereLight(0xffffff, 0x556b4f, 1.0);
+  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+  sun.position.set(30, 50, 12);
+  scene.add(ambient, sun);
+
+  function applySettings() {
+    const sky = new THREE.Color(SKY[settings.sky] ?? SKY.day);
+    scene.background = sky;
+    scene.fog = settings.fog ? new THREE.Fog(sky, 25, 70) : null;
+    camera.fov = settings.fov;
+    camera.updateProjectionMatrix();
+  }
+  applySettings();
+
+  // Textures (Bloxd default pack, 8×8 pixel art)
+  const loader = new THREE.TextureLoader();
+  loader.setPath("/textures/");
+  const texCache = {};
+  function tex(name) {
+    if (!texCache[name]) {
+      const t = loader.load(`${name}.png`);
+      t.magFilter = THREE.NearestFilter;
+      t.minFilter = THREE.NearestFilter;
+      t.colorSpace = THREE.SRGBColorSpace;
+      texCache[name] = t;
+    }
+    return texCache[name];
+  }
+
+  function blockMaterial(block) {
+    const f = block.faces;
+    const side = tex(f.side ?? f.all), top = tex(f.top ?? f.all), bottom = tex(f.bottom ?? f.all);
+    // BoxGeometry face order: +x, -x, +y, -y, +z, -z
+    const mats = [side, side, top, bottom, side, side].map((t) =>
+      new THREE.MeshLambertMaterial({ map: t, transparent: !!block.opacity, opacity: block.opacity ?? 1 }));
+    return mats;
+  }
+
+  const materials = PALETTE.map((b) => (b ? blockMaterial(b) : null));
+  const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+
+  const meshGroup = new THREE.Group();
+  scene.add(meshGroup);
+  let typeMeshes = [];
+
+  function rebuildAll() {
+    for (const m of typeMeshes) { m.geometry.dispose(); meshGroup.remove(m); }
+    typeMeshes = [];
+    const cellsByType = {};
+    for (let y = 0; y < SY; y++) for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
+      const id = world[idx(x, y, z)];
+      if (id) (cellsByType[id] ??= []).push([x, y, z]);
+    }
+    for (const [idStr, cells] of Object.entries(cellsByType)) {
+      const id = +idStr;
+      const mesh = new THREE.InstancedMesh(boxGeo, materials[id], cells.length);
+      const m = new THREE.Matrix4();
+      cells.forEach(([x, y, z], i) => {
+        mesh.setMatrixAt(i, m.makeTranslation(x + 0.5, y + 0.5, z + 0.5));
+      });
+      mesh.userData.map = cells;
+      meshGroup.add(mesh);
+      typeMeshes.push(mesh);
+    }
+  }
+
+  // Block highlight
+  const highlight = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002)),
+    new THREE.LineBasicMaterial({ color: 0xffffff }));
+  highlight.visible = false;
+  scene.add(highlight);
+
+  // ---------- Panels (inventory / shop / script / settings) ----------
+  const panels = ["inv-panel", "shop-panel", "code-panel", "settings"].map((id) => document.getElementById(id));
+  const overlay = document.getElementById("overlay");
+  const panelOpen = () => panels.some((p) => !p.classList.contains("hidden"));
+
+  function refreshOverlay() {
+    overlay.classList.toggle("hidden", started && (locked || fallbackLook || panelOpen()));
+  }
+  function togglePanel(p) {
+    const open = !p.classList.contains("hidden");
+    panels.forEach((x) => x.classList.add("hidden"));
+    if (!open) {
+      p.classList.remove("hidden");
+      document.exitPointerLock?.();
+      if (p.id === "inv-panel") renderInventory();
+      if (p.id === "shop-panel") renderShop();
+    }
+    refreshOverlay();
+  }
+  for (const btn of document.querySelectorAll("[data-close]")) {
+    btn.addEventListener("click", () => { btn.closest(".game-panel").classList.add("hidden"); refreshOverlay(); });
+  }
+  document.getElementById("shop-btn").addEventListener("click", () => togglePanel(document.getElementById("shop-panel")));
+  document.getElementById("settings-btn").addEventListener("click", () => togglePanel(document.getElementById("settings")));
+
+  // ---------- Player / controls ----------
+  let yaw = Math.PI * 0.25, pitch = -0.25;
+  const pos = new THREE.Vector3(SX / 2 + 0.5, 9, SZ / 2 + 0.5);
+  let started = false, locked = false, fallbackLook = false;
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.far = 8;
+
+  function look(dx, dy) {
+    yaw -= dx * 0.0022 * settings.sens;
+    pitch = Math.max(-1.55, Math.min(1.55, pitch - dy * 0.0022 * settings.sens));
+    camera.rotation.set(pitch, yaw, 0);
+  }
+
+  function tryLock() {
+    try {
+      const p = canvas.requestPointerLock();
+      if (p && p.catch) p.catch(() => { fallbackLook = true; refreshOverlay(); });
+    } catch { fallbackLook = true; refreshOverlay(); }
+  }
+  document.addEventListener("pointerlockchange", () => {
+    locked = document.pointerLockElement === canvas;
+    refreshOverlay();
+  });
+  document.addEventListener("mousemove", (e) => { if (locked) look(e.movementX, e.movementY); });
+
+  // Fallback (no pointer lock): drag to look, click to act
+  let dragBtn = -1, dragMoved = 0, lastX = 0, lastY = 0;
+  canvas.addEventListener("mousedown", (e) => {
+    if (!started || panelOpen()) return;
+    if (locked) {
+      if (e.button === 0) actBreak();
+      else if (e.button === 2) actPlace();
+      return;
+    }
+    if (fallbackLook) {
+      dragBtn = e.button; dragMoved = 0; lastX = e.clientX; lastY = e.clientY;
+    }
+  });
+  canvas.addEventListener("mousemove", (e) => {
+    if (fallbackLook && dragBtn >= 0) {
+      dragMoved += Math.abs(e.clientX - lastX) + Math.abs(e.clientY - lastY);
+      look(e.clientX - lastX, e.clientY - lastY);
+      lastX = e.clientX; lastY = e.clientY;
+    }
+  });
+  canvas.addEventListener("mouseup", (e) => {
+    if (fallbackLook && dragBtn >= 0) {
+      if (dragMoved < 5) { e.button === 0 ? actBreak() : actPlace(); }
+      dragBtn = -1;
+    }
+  });
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  overlay.addEventListener("click", () => {
+    started = true;
+    tryLock();
+    refreshOverlay();
+  });
+
+  const keys = {};
+  addEventListener("keydown", (e) => {
+    const tag = document.activeElement?.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") { keys[e.code] = false; return; }
+    keys[e.code] = true;
+    const digit = /^Digit([1-9])$/.exec(e.code);
+    if (digit) selectSlot(+digit[1] - 1);
+    if (e.code === "Tab") { e.preventDefault(); togglePanel(document.getElementById("inv-panel")); }
+    if (e.code === "KeyX") togglePanel(document.getElementById("code-panel"));
+    if (e.code === "KeyB") togglePanel(document.getElementById("shop-panel"));
+    if (e.code === "Escape") { panels.forEach((p) => p.classList.add("hidden")); refreshOverlay(); }
+  });
+  addEventListener("keyup", (e) => { keys[e.code] = false; });
+  addEventListener("wheel", (e) => {
+    if (started && (locked || fallbackLook) && !panelOpen()) {
+      selectSlot((selected + (e.deltaY > 0 ? 1 : -1) + 9) % 9);
+    }
+  }, { passive: true });
+
+  // ---------- Hotbar ----------
+  const hotbar = document.getElementById("hotbar");
+  let selected = 0;
+  function renderHotbar() {
+    hotbar.innerHTML = "";
+    hotbarIds.forEach((id, i) => {
+      const block = PALETTE[id] ?? null;
+      const slot = document.createElement("button");
+      slot.className = "slot" + (i === selected ? " active" : "");
+      slot.title = block ? block.label : "Empty";
+      slot.innerHTML = `<span class="num">${i + 1}</span>` +
+        (block ? `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` : `<span class="empty">—</span>`);
+      slot.addEventListener("click", () => { selectSlot(i); slot.blur(); });
+      hotbar.appendChild(slot);
+    });
+  }
+  function selectSlot(i) {
+    selected = i;
+    for (const [j, s] of [...hotbar.children].entries()) s.classList.toggle("active", j === i);
+  }
+
+  // ---------- Inventory ----------
+  const invGrid = document.getElementById("inv-grid");
+  function renderInventory() {
+    invGrid.innerHTML = "";
+    PALETTE.forEach((block, id) => {
+      if (!block) return;
+      const owned = unlocked.has(block.name);
+      const item = document.createElement("button");
+      item.className = "inv-item" + (owned ? "" : " locked");
+      item.title = block.label;
+      item.innerHTML = `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` +
+        (owned ? "" : `<span class="lock">🔒${block.price}</span>`);
+      item.addEventListener("click", () => {
+        if (!owned) { togglePanel(document.getElementById("shop-panel")); return; }
+        hotbarIds[selected] = id;
+        saveEconomy();
+        renderHotbar();
+      });
+      invGrid.appendChild(item);
+    });
+  }
+
+  // ---------- Shop ----------
+  const shopList = document.getElementById("shop-list");
+  function renderShop() {
+    shopList.innerHTML = "";
+    PALETTE.forEach((block, id) => {
+      if (!block) return;
+      const owned = unlocked.has(block.name);
+      const row = document.createElement("div");
+      row.className = "shop-row";
+      row.innerHTML = `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">
+        <span class="shop-name">${block.label}</span>
+        <span class="shop-price">${owned ? "Owned" : `🪙 ${block.price}`}</span>`;
+      const btn = document.createElement("button");
+      btn.className = "btn btn-primary buy-btn";
+      btn.textContent = owned ? "✓" : "Buy";
+      btn.disabled = owned || coins < block.price;
+      btn.addEventListener("click", () => {
+        if (owned || coins < block.price) return;
+        coins -= block.price;
+        unlocked.add(block.name);
+        saveEconomy();
+        renderCoins();
+        renderShop();
+      });
+      row.appendChild(btn);
+      shopList.appendChild(row);
+    });
+    renderCoins();
+  }
+
+  // ---------- Script editor ----------
+  const codePanel = document.getElementById("code-panel");
+  const codeEl = document.getElementById("code");
+  const codeOut = document.getElementById("code-output");
+  const CODE_KEY = "bloxd.script3d";
+  codeEl.value = localStorage.getItem(CODE_KEY) ??
+`// BloxdBuilder script — press ▶ Run.
+// API:
+//   api.getBlock(x, y, z)  -> block name or null
+//   api.setBlock(x, y, z, "stone")  -> places a block
+//   api.size = [width, height, depth]
+
+const [w, h, d] = api.size;
+console.log("World size:", w, "x", h, "x", d);
+
+// Stamp a small gold platform in the sky
+for (let x = 10; x < 14; x++) {
+  for (let z = 10; z < 14; z++) {
+    api.setBlock(x, h - 3, z, "gold");
+  }
+}
+console.log("Built a gold platform!");
+`;
+
+  document.getElementById("code-save").addEventListener("click", () => {
+    localStorage.setItem(CODE_KEY, codeEl.value);
+    codeOut.textContent = "Saved ✓";
+  });
+  document.getElementById("code-run").addEventListener("click", () => {
+    const lines = [];
+    const log = (...args) => lines.push(args.map(String).join(" "));
+    const fakeConsole = { log, info: log, warn: log, error: log };
+    const api = {
+      size: [SX, SY, SZ],
+      blocks: PALETTE.filter(Boolean).map((b) => b.name),
+      getBlock: (x, y, z) => { const id = get(x, y, z); return id ? PALETTE[id].name : null; },
+      setBlock: (x, y, z, name) => {
+        const id = byName(name);
+        if (id < 1) { log(`Unknown block "${name}"`); return false; }
+        set(x, y, z, id);
+        rebuildAll();
+        save();
+        return true;
+      },
+    };
+    try {
+      new Function("api", "console", codeEl.value)(api, fakeConsole);
+      lines.push("// finished without errors");
+    } catch (err) {
+      lines.push("ERROR: " + err.message);
+    }
+    codeOut.textContent = lines.join("\n") || "(no output)";
+  });
+
+  // ---------- Break / place ----------
+  function target() {
+    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+    const hits = raycaster.intersectObjects(meshGroup.children, false);
+    if (!hits.length) return null;
+    const h = hits[0];
+    const cell = h.object.userData.map[h.instanceId];
+    if (!cell) return null;
+    return { cell, normal: h.face.normal };
+  }
+
+  function actBreak() {
+    const t = target();
+    if (!t) return;
+    const [x, y, z] = t.cell;
+    if (get(x, y, z)) coins += 1;   // earn a coin per block broken
+    set(x, y, z, 0);
+    rebuildAll();
+    save();
+    saveEconomy();
+    renderCoins();
+  }
+
+  function actPlace() {
+    const id = hotbarIds[selected];
+    if (!id) return;
+    const t = target();
+    if (!t) return;
+    const x = t.cell[0] + Math.round(t.normal.x);
+    const y = t.cell[1] + Math.round(t.normal.y);
+    const z = t.cell[2] + Math.round(t.normal.z);
+    if (get(x, y, z)) return;
+    set(x, y, z, id);
+    rebuildAll();
+    save();
+  }
+
+  // ---------- Export / import ----------
+  const io = document.getElementById("io");
+  document.getElementById("export-btn").addEventListener("click", () => {
+    io.value = JSON.stringify({
+      size: [SX, SY, SZ],
+      palette: PALETTE.map((b) => b ? b.name : null),
+      world: Array.from(world),
+    });
+    io.select();
+    try { document.execCommand("copy"); } catch {}
+  });
+  document.getElementById("import-btn").addEventListener("click", () => {
+    try {
+      const data = JSON.parse(io.value);
+      if (data.size?.join() === `${SX},${SY},${SZ}` && Array.isArray(data.world) && data.world.length === SX * SY * SZ) {
+        world = Uint8Array.from(data.world);
+        rebuildAll();
+        save();
+        document.getElementById("settings").classList.add("hidden");
+        refreshOverlay();
+      } else {
+        alert(`Expected a ${SX}×${SY}×${SZ} world.`);
+      }
+    } catch {
+      alert("That isn't valid JSON.");
+    }
+  });
+
+  // ---------- Loop ----------
+  load();
+  renderCoins();
+  renderHotbar();
+  rebuildAll();
+
+  const clock = new THREE.Clock();
+  function frame() {
+    const dt = Math.min(clock.getDelta(), 0.1);
+    if (started && !panelOpen()) {
+      const speed = 10 * dt;
+      const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+      const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+      let mx = 0, mz = 0;
+      if (keys.KeyW) { mx += fwdX; mz += fwdZ; }
+      if (keys.KeyS) { mx -= fwdX; mz -= fwdZ; }
+      if (keys.KeyD) { mx += rightX; mz += rightZ; }
+      if (keys.KeyA) { mx -= rightX; mz -= rightZ; }
+      pos.x += mx * speed; pos.z += mz * speed;
+      if (keys.Space) pos.y += speed;
+      if (keys.ShiftLeft || keys.ShiftRight) pos.y -= speed;
+      pos.x = Math.max(0.5, Math.min(SX - 0.5, pos.x));
+      pos.y = Math.max(0.5, Math.min(SY + 10, pos.y));
+      pos.z = Math.max(0.5, Math.min(SZ - 0.5, pos.z));
+    }
+    camera.position.copy(pos);
+
+    const t = (!panelOpen()) ? target() : null;
+    if (t) { highlight.visible = true; highlight.position.set(t.cell[0] + 0.5, t.cell[1] + 0.5, t.cell[2] + 0.5); }
+    else highlight.visible = false;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  frame();
+
+  addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>
