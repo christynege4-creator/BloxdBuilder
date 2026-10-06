@@ -5,124 +5,210 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>World Builder — BloxdBuilder</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/studio.css">
   <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
   <script src="/theme.js"></script>
 </head>
-<body class="game-page">
-  <div class="game">
-    <canvas id="scene" role="img" aria-label="Interactive 3D world preview">Interactive 3D world preview</canvas>
-    <div class="hud">
-      <div class="topbar">
-        <a class="top-link" href="/index.html" id="leave-builder">← Leave builder</a>
-        <span class="top-title">World Builder</span>
-        <div class="top-actions">
-          <a class="top-link" href="/workshop.html">Workshop</a>
-          <button class="icon-btn" id="shop-btn" type="button" title="Shop (B)" aria-label="Shop">🛒</button>
-          <button class="icon-btn" id="settings-btn" type="button" title="Settings" aria-label="Settings">⚙</button>
+<body class="studio-page">
+  <div class="studio">
+    <!-- Ribbon tab bar -->
+    <div class="studio-ribbon">
+      <div class="studio-ribbon-tabs">
+        <button class="ribbon-tab active" data-tab="home" type="button">Home</button>
+        <button class="ribbon-tab" data-tab="model" type="button">Model</button>
+        <button class="ribbon-tab" data-tab="view" type="button">View</button>
+      </div>
+      <div class="studio-ribbon-actions">
+        <button class="ribbon-btn primary" id="play-btn" type="button">▶ Play</button>
+        <a class="ribbon-btn" href="/index.html">← Home</a>
+      </div>
+    </div>
+
+    <!-- Ribbon tools: Home -->
+    <div class="studio-ribbon-tools" id="ribbon-home">
+      <div class="ribbon-group">
+        <span class="ribbon-group-label">Tools</span>
+        <div class="ribbon-group-items">
+          <button class="studio-tool active" data-tool="select" type="button">🖱 Select</button>
+          <button class="studio-tool" data-tool="build" type="button">🧱 Build</button>
+          <button class="studio-tool" data-tool="delete" type="button">✕ Delete</button>
         </div>
       </div>
-
-      <div class="crosshair" aria-hidden="true"></div>
-
-      <div class="coins-badge" id="coins-badge">🪙 0</div>
-      <div class="hotbar" id="hotbar"></div>
-
-      <div class="play-overlay" id="overlay">
-        <h2>⛏ World Builder</h2>
-        <p class="muted">Click to play</p>
-        <a class="btn btn-ghost overlay-leave" href="/index.html">← Exit to Home</a>
-        <div class="controls">
-          <span><b>WASD</b> move</span>
-          <span><b>Space / Shift</b> up / down</span>
-          <span><b>Left click</b> break</span>
-          <span><b>Right click</b> place</span>
-          <span><b>1–9 / wheel</b> pick block</span>
-          <span><b>Tab</b> inventory</span>
-          <span><b>X</b> script editor</span>
-          <span><b>B</b> shop</span>
-          <span><b>Esc</b> release mouse</span>
+      <div class="ribbon-group">
+        <span class="ribbon-group-label">Window</span>
+        <div class="ribbon-group-items">
+          <button class="studio-tool" id="inv-btn" type="button">🎒 Inventory</button>
+          <button class="studio-tool" id="shop-btn" type="button">🛒 Shop</button>
+          <button class="studio-tool" id="script-btn" type="button">📜 Script</button>
+          <button class="studio-tool" id="settings-btn" type="button">⚙ Settings</button>
         </div>
       </div>
+    </div>
 
-      <div class="game-panel hidden" id="inv-panel">
-        <div class="panel-head"><h3>🎒 Inventory</h3><button class="icon-btn" type="button" data-close aria-label="Close inventory">✕</button></div>
-        <p class="muted small">Click a block to put it in the selected hotbar slot. 🔒 blocks must be bought in the shop (B).</p>
-        <div class="inv-grid" id="inv-grid"></div>
+    <!-- Ribbon tools: Model -->
+    <div class="studio-ribbon-tools hidden" id="ribbon-model">
+      <div class="ribbon-group">
+        <span class="ribbon-group-label">Blocks</span>
+        <div class="ribbon-group-items" id="model-palette"></div>
       </div>
+    </div>
 
-      <div class="game-panel hidden" id="shop-panel">
-        <div class="panel-head"><h3>🛒 Shop</h3><button class="icon-btn" type="button" data-close aria-label="Close shop">✕</button></div>
-        <div class="coins-line">🪙 <b id="shop-coins">0</b> coins — break blocks to earn more</div>
-        <div class="shop-list" id="shop-list"></div>
-      </div>
-
-      <div class="game-panel hidden" id="code-panel">
-        <div class="panel-head"><h3>📜 Script</h3><button class="icon-btn" type="button" data-close aria-label="Close script editor">✕</button></div>
-        <textarea id="code" spellcheck="false" aria-label="World script"></textarea>
-        <div class="io-row">
-          <button class="btn btn-primary" id="code-run" type="button">▶ Run</button>
-          <button class="btn btn-ghost" id="code-save" type="button">Save</button>
+    <!-- Ribbon tools: View -->
+    <div class="studio-ribbon-tools hidden" id="ribbon-view">
+      <div class="ribbon-group">
+        <span class="ribbon-group-label">Panels</span>
+        <div class="ribbon-group-items">
+          <button class="studio-tool active" id="toggle-explorer" type="button">Explorer</button>
+          <button class="studio-tool active" id="toggle-properties" type="button">Properties</button>
         </div>
-        <pre class="code-output" id="code-output">// Run to see output.
+      </div>
+      <div class="ribbon-group">
+        <span class="ribbon-group-label">Display</span>
+        <div class="ribbon-group-items">
+          <button class="studio-tool active" id="toggle-grid" type="button">Grid</button>
+          <button class="studio-tool" id="reset-camera" type="button">Reset Camera</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main body -->
+    <div class="studio-body">
+      <div class="studio-viewport">
+        <canvas id="scene" role="img" aria-label="3D world viewport"></canvas>
+        <div class="crosshair hidden" id="crosshair" aria-hidden="true"></div>
+        <div class="studio-coins" id="coins-badge">🪙 0</div>
+        <div class="studio-hotbar" id="hotbar"></div>
+      </div>
+
+      <div class="studio-right" id="studio-right">
+        <div class="studio-explorer" id="studio-explorer">
+          <div class="studio-panel-header"><h3>Explorer</h3></div>
+          <div class="explorer-tree" id="explorer-tree"></div>
+        </div>
+        <div class="studio-properties" id="studio-properties">
+          <div class="studio-panel-header"><h3>Properties</h3></div>
+          <div class="prop-content" id="prop-content">
+            <p class="prop-empty">Select a block to view its properties.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="studio-statusbar" id="statusbar">
+      <span id="status-pos">X: — Y: — Z: —</span>
+      <span id="status-blocks">Blocks: 0</span>
+      <span id="status-tool">Tool: Select</span>
+    </div>
+  </div>
+
+  <!-- Play overlay -->
+  <div class="play-overlay hidden" id="overlay">
+    <h2>▶ Play Mode</h2>
+    <p class="muted">Click to play · Esc to return to Studio</p>
+    <a class="btn btn-ghost overlay-leave" href="/index.html">← Exit to Home</a>
+    <div class="controls">
+      <span><b>WASD</b> move</span>
+      <span><b>Space / Shift</b> up / down</span>
+      <span><b>Left click</b> break</span>
+      <span><b>Right click</b> place</span>
+      <span><b>1–9 / wheel</b> pick block</span>
+      <span><b>Tab</b> inventory</span>
+      <span><b>Esc</b> exit to studio</span>
+    </div>
+  </div>
+
+  <!-- Modal overlay -->
+  <div class="studio-modal-overlay hidden" id="modal-overlay"></div>
+
+  <!-- Inventory modal -->
+  <div class="studio-modal hidden" id="inv-modal">
+    <div class="studio-modal-header">
+      <h3>🎒 Inventory</h3>
+      <button class="studio-modal-close" type="button" data-close-modal>✕</button>
+    </div>
+    <p class="muted small" style="margin-bottom:10px">Click a block to put it in the selected hotbar slot. 🔒 blocks must be bought in the shop.</p>
+    <div class="inv-grid" id="inv-grid"></div>
+  </div>
+
+  <!-- Shop modal -->
+  <div class="studio-modal hidden" id="shop-modal">
+    <div class="studio-modal-header">
+      <h3>🛒 Shop</h3>
+      <button class="studio-modal-close" type="button" data-close-modal>✕</button>
+    </div>
+    <div class="coins-line">🪙 <b id="shop-coins">0</b> coins — break blocks to earn more</div>
+    <div class="shop-list" id="shop-list"></div>
+  </div>
+
+  <!-- Script modal -->
+  <div class="studio-modal hidden" id="script-modal" style="min-width:500px">
+    <div class="studio-modal-header">
+      <h3>📜 Script Editor</h3>
+      <button class="studio-modal-close" type="button" data-close-modal>✕</button>
+    </div>
+    <textarea id="code" spellcheck="false" aria-label="World script"></textarea>
+    <div class="io-row">
+      <button class="btn btn-primary" id="code-run" type="button">▶ Run</button>
+      <button class="btn btn-ghost" id="code-save" type="button">Save</button>
+    </div>
+    <pre class="code-output" id="code-output">// Run to see output.
 // API: api.getBlock(x,y,z) · api.setBlock(x,y,z,"grass") · api.size · api.blocks</pre>
-      </div>
+  </div>
 
-      <div class="game-panel hidden" id="settings">
-        <div class="panel-head"><h3>⚙ Settings</h3><button class="icon-btn" type="button" data-close aria-label="Close settings">✕</button></div>
-        <label>Sky
-          <select id="sky">
-            <option value="day">Day</option>
-            <option value="night">Night</option>
-          </select>
-        </label>
-        <label><input type="checkbox" id="fog" checked> Fog</label>
-        <label>FOV <input type="range" id="fov" min="60" max="100" value="75"></label>
-        <label>Sensitivity <input type="range" id="sens" min="0.5" max="2" step="0.1" value="1"></label>
-        <div class="settings-io">
-          <textarea id="io" spellcheck="false" aria-label="World JSON for export or import" placeholder="Exported world JSON appears here — paste to import"></textarea>
-          <div class="io-row">
-            <button class="btn btn-ghost" id="export-btn" type="button">Export JSON</button>
-            <button class="btn btn-ghost" id="import-btn" type="button">Import JSON</button>
-          </div>
-          <div class="io-row">
-            <button class="btn btn-primary" id="export-schematic-btn" type="button">Download .bloxdschem</button>
-            <label class="btn btn-ghost file-button" for="schematic-file">Import .bloxdschem</label>
-            <input class="visually-hidden" id="schematic-file" type="file" accept=".bloxdschem,.json,application/json">
-          </div>
-          <p class="muted small" id="schematic-status" aria-live="polite">Bloxd schematics are saved as .bloxdschem files.</p>
-        </div>
+  <!-- Settings modal -->
+  <div class="studio-modal hidden" id="settings-modal" style="min-width:360px">
+    <div class="studio-modal-header">
+      <h3>⚙ Settings</h3>
+      <button class="studio-modal-close" type="button" data-close-modal>✕</button>
+    </div>
+    <label>Sky
+      <select id="sky"><option value="day">Day</option><option value="night">Night</option></select>
+    </label>
+    <label><input type="checkbox" id="fog" checked> Fog</label>
+    <label>FOV <input type="range" id="fov" min="60" max="100" value="75"></label>
+    <label>Sensitivity <input type="range" id="sens" min="0.5" max="2" step="0.1" value="1"></label>
+    <div class="settings-io" style="margin-top:12px">
+      <textarea id="io" spellcheck="false" aria-label="World JSON" placeholder="Exported world JSON appears here — paste to import"></textarea>
+      <div class="io-row">
+        <button class="btn btn-ghost" id="export-btn" type="button">Export JSON</button>
+        <button class="btn btn-ghost" id="import-btn" type="button">Import JSON</button>
       </div>
+      <div class="io-row">
+        <button class="btn btn-primary" id="export-schematic-btn" type="button">Download .bloxdschem</button>
+        <label class="btn btn-ghost file-button" for="schematic-file">Import .bloxdschem</label>
+        <input class="visually-hidden" id="schematic-file" type="file" accept=".bloxdschem,.json,application/json">
+      </div>
+      <p class="muted small" id="schematic-status" aria-live="polite">Bloxd schematics are saved as .bloxdschem files.</p>
     </div>
   </div>
 
 <script type="module">
   import * as THREE from "/vendor/three.module.min.js";
 
-  // ---------- World data ----------
+  // ===== World data =====
   const SX = 24, SY = 16, SZ = 24;
-  const WORLD_KEY = "bloxd.world3d";
-  const SETTINGS_KEY = "bloxd.settings";
+  const WORLD_KEY = "bloxd.world3d", SETTINGS_KEY = "bloxd.settings";
 
-  // Textures are 8×8 pixel-art PNGs from the official Bloxd default pack
-  // (https://github.com/Bloxdy/texture-packs/tree/main/default/textures).
   const PALETTE = [
     null,
-    { name: "grass",     label: "Grass",     faces: { top: "grass_top", side: "grass_block_side", bottom: "dirt" } },
-    { name: "dirt",      label: "Dirt",      faces: { all: "dirt" } },
-    { name: "stone",     label: "Stone",     faces: { all: "stone" } },
-    { name: "wood",      label: "Wood",      faces: { all: "planks_elm" } },
-    { name: "leaves",    label: "Leaves",    faces: { all: "leaves_elm" } },
-    { name: "water",     label: "Water",     faces: { all: "water" }, price: 15, opacity: 0.8 },
-    { name: "sand",      label: "Sand",      faces: { all: "sand" } },
-    { name: "gold",      label: "Gold",      faces: { all: "gold_block" }, price: 25 },
-    { name: "bedrock",   label: "Bedrock",   faces: { all: "bedrock" } },
-    { name: "glass",     label: "Glass",     faces: { all: "glass" }, price: 10, opacity: 0.45 },
-    { name: "brick",     label: "Bricks",    faces: { all: "brick" }, price: 12 },
-    { name: "snow",      label: "Snow",      faces: { all: "snow" }, price: 8 },
-    { name: "sandstone", label: "Sandstone", faces: { all: "sandstone_normal" }, price: 10 },
-    { name: "ice",       label: "Ice",       faces: { all: "ice" }, price: 12, opacity: 0.75 },
+    { name: "grass",     label: "Grass",     color: 0x5a9c3e, faces: { top: "grass_top", side: "grass_block_side", bottom: "dirt" } },
+    { name: "dirt",      label: "Dirt",      color: 0x8b6841, faces: { all: "dirt" } },
+    { name: "stone",     label: "Stone",     color: 0x888888, faces: { all: "stone" } },
+    { name: "wood",      label: "Wood",      color: 0xb8860b, faces: { all: "planks_elm" } },
+    { name: "leaves",    label: "Leaves",    color: 0x3d6b1f, faces: { all: "leaves_elm" } },
+    { name: "water",     label: "Water",     color: 0x3b7dd8, faces: { all: "water" }, price: 15, opacity: 0.8 },
+    { name: "sand",      label: "Sand",      color: 0xe6d8a0, faces: { all: "sand" } },
+    { name: "gold",      label: "Gold",      color: 0xffd700, faces: { all: "gold_block" }, price: 25 },
+    { name: "bedrock",   label: "Bedrock",   color: 0x333333, faces: { all: "bedrock" } },
+    { name: "glass",     label: "Glass",     color: 0xaaccee, faces: { all: "glass" }, price: 10, opacity: 0.45 },
+    { name: "brick",     label: "Bricks",    color: 0xb54724, faces: { all: "brick" }, price: 12 },
+    { name: "snow",      label: "Snow",      color: 0xf0f0f0, faces: { all: "snow" }, price: 8 },
+    { name: "sandstone", label: "Sandstone", color: 0xdbca94, faces: { all: "sandstone_normal" }, price: 10 },
+    { name: "ice",       label: "Ice",       color: 0x90c0e8, faces: { all: "ice" }, price: 12, opacity: 0.75 },
   ];
   const byName = (name) => PALETTE.findIndex((b) => b && b.name === name);
+  const colorHex = (b) => "#" + (b?.color ?? 0xffffff).toString(16).padStart(6, "0");
 
   let world = new Uint8Array(SX * SY * SZ);
   const idx = (x, y, z) => (y * SZ + z) * SX + x;
@@ -131,158 +217,118 @@
 
   function starterWorld() {
     world.fill(0);
-    for (let x = 0; x < SX; x++) {
-      for (let z = 0; z < SZ; z++) {
-        const h = 5 + Math.round(2 * Math.sin(x / 4.5) + 1.5 * Math.cos(z / 3.8) + 1.2 * Math.sin((x + z) / 6));
-        for (let y = 0; y <= Math.min(h, SY - 1); y++) {
-          let id;
-          if (y === 0) id = 9;                 // bedrock
-          else if (y < h - 2) id = 3;          // stone
-          else if (y < h) id = 2;              // dirt
-          else id = 1;                         // grass
-          set(x, y, z, id);
-        }
+    for (let x = 0; x < SX; x++) for (let z = 0; z < SZ; z++) {
+      const h = 5 + Math.round(2 * Math.sin(x / 4.5) + 1.5 * Math.cos(z / 3.8) + 1.2 * Math.sin((x + z) / 6));
+      for (let y = 0; y <= Math.min(h, SY - 1); y++) {
+        let id; if (y === 0) id = 9; else if (y < h - 2) id = 3; else if (y < h) id = 2; else id = 1;
+        set(x, y, z, id);
       }
     }
-    // A small pond with sand shores
-    for (let x = 14; x < 20; x++) {
-      for (let z = 14; z < 20; z++) {
-        for (let y = 0; y < SY; y++) {
-          if (get(x, y, z) === 0) continue;
-          const depth = Math.max(x - 13, z - 13, 20 - x, 20 - z);
-          if (depth <= 3) set(x, y, z, y >= 3 ? (y <= 4 ? 6 : 0) : (y >= 2 ? 7 : get(x, y, z)));
-          else set(x, y, z, y >= 4 ? 7 : get(x, y, z));
-        }
-      }
+    for (let x = 14; x < 20; x++) for (let z = 14; z < 20; z++) for (let y = 0; y < SY; y++) {
+      if (get(x, y, z) === 0) continue;
+      const d = Math.max(x - 13, z - 13, 20 - x, 20 - z);
+      if (d <= 3) set(x, y, z, y >= 3 ? (y <= 4 ? 6 : 0) : (y >= 2 ? 7 : get(x, y, z)));
+      else set(x, y, z, y >= 4 ? 7 : get(x, y, z));
     }
-    // A tree
     const tx = 6, tz = 6;
     const ground = (() => { for (let y = SY - 1; y >= 0; y--) if (get(tx, y, tz) && get(tx, y, tz) !== 6) return y; return 4; })();
     for (let y = ground + 1; y <= ground + 4; y++) set(tx, y, tz, 4);
-    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = 3; dy <= 5; dy++) {
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = 3; dy <= 5; dy++)
       if (Math.abs(dx) + Math.abs(dz) + Math.abs(dy - 4) <= 3 && get(tx + dx, ground + dy, tz + dz) === 0) set(tx + dx, ground + dy, tz + dz, 5);
-    }
-    // A little gold vein
     set(10, 3, 10, 8); set(11, 3, 10, 8);
   }
 
   function save() {
-    localStorage.setItem(WORLD_KEY, JSON.stringify({
-      size: [SX, SY, SZ],
-      palette: PALETTE.map((b) => b ? b.name : null),
-      world: Array.from(world),
-    }));
+    localStorage.setItem(WORLD_KEY, JSON.stringify({ size: [SX, SY, SZ], palette: PALETTE.map((b) => b ? b.name : null), world: Array.from(world) }));
   }
-
   function load() {
     try {
-      const saved = JSON.parse(localStorage.getItem(WORLD_KEY));
-      if (saved && saved.size?.join() === `${SX},${SY},${SZ}` && Array.isArray(saved.world) && saved.world.length === SX * SY * SZ) {
-        world = Uint8Array.from(saved.world);
-        return;
-      }
+      const s = JSON.parse(localStorage.getItem(WORLD_KEY));
+      if (s && s.size?.join() === `${SX},${SY},${SZ}` && Array.isArray(s.world) && s.world.length === SX * SY * SZ) { world = Uint8Array.from(s.world); return; }
     } catch {}
-    starterWorld();
-    save();
+    starterWorld(); save();
   }
+  function countBlocks() { let c = 0; for (let i = 0; i < world.length; i++) if (world[i]) c++; return c; }
 
-  // ---------- Economy: coins, unlocks, hotbar ----------
+  // ===== Economy =====
   const COINS_KEY = "bloxd.coins", UNLOCKED_KEY = "bloxd.unlocked", HOTBAR_KEY = "bloxd.hotbar";
   let coins = +(localStorage.getItem(COINS_KEY) ?? 40);
-  let unlocked = new Set(
-    JSON.parse(localStorage.getItem(UNLOCKED_KEY) || "null") ??
-    PALETTE.filter((b) => b && !b.price).map((b) => b.name)
-  );
+  let unlocked = new Set(JSON.parse(localStorage.getItem(UNLOCKED_KEY) || "null") ?? PALETTE.filter((b) => b && !b.price).map((b) => b.name));
   let hotbarIds = JSON.parse(localStorage.getItem(HOTBAR_KEY) || "null") ?? [1, 2, 3, 4, 5, 7, 9, 0, 0];
+  function saveEconomy() { localStorage.setItem(COINS_KEY, String(coins)); localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...unlocked])); localStorage.setItem(HOTBAR_KEY, JSON.stringify(hotbarIds)); }
+  const coinsBadge = document.getElementById("coins-badge"), shopCoins = document.getElementById("shop-coins");
+  function renderCoins() { coinsBadge.textContent = `🪙 ${coins}`; shopCoins.textContent = String(coins); }
 
-  function saveEconomy() {
-    localStorage.setItem(COINS_KEY, String(coins));
-    localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...unlocked]));
-    localStorage.setItem(HOTBAR_KEY, JSON.stringify(hotbarIds));
-  }
-
-  const coinsBadge = document.getElementById("coins-badge");
-  const shopCoins = document.getElementById("shop-coins");
-  function renderCoins() {
-    coinsBadge.textContent = `🪙 ${coins}`;
-    shopCoins.textContent = String(coins);
-  }
-
-  // ---------- Settings ----------
-  const settings = Object.assign({ sky: "day", fog: true, fov: 75, sens: 1 },
-    JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
-
-  const skyEl = document.getElementById("sky");
-  const fogEl = document.getElementById("fog");
-  const fovEl = document.getElementById("fov");
-  const sensEl = document.getElementById("sens");
-  skyEl.value = settings.sky; fogEl.checked = settings.fog;
-  fovEl.value = settings.fov; sensEl.value = settings.sens;
-
+  // ===== Settings =====
+  const settings = Object.assign({ sky: "day", fog: true, fov: 75, sens: 1 }, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
+  const skyEl = document.getElementById("sky"), fogEl = document.getElementById("fog"), fovEl = document.getElementById("fov"), sensEl = document.getElementById("sens");
+  skyEl.value = settings.sky; fogEl.checked = settings.fog; fovEl.value = settings.fov; sensEl.value = settings.sens;
   function persistSettings() {
-    settings.sky = skyEl.value; settings.fog = fogEl.checked;
-    settings.fov = +fovEl.value; settings.sens = +sensEl.value;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    applySettings();
+    settings.sky = skyEl.value; settings.fog = fogEl.checked; settings.fov = +fovEl.value; settings.sens = +sensEl.value;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); applySettings();
   }
   for (const el of [skyEl, fogEl, fovEl, sensEl]) el.addEventListener("input", persistSettings);
 
-  // ---------- three.js scene ----------
+  // ===== Three.js scene =====
   const SKY = { day: 0x8fc7ee, night: 0x0b1026 };
   const canvas = document.getElementById("scene");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(settings.fov, window.innerWidth / window.innerHeight, 0.1, 200);
+  const camera = new THREE.PerspectiveCamera(settings.fov, 1, 0.1, 200);
   camera.rotation.order = "YXZ";
-
   const ambient = new THREE.HemisphereLight(0xffffff, 0x556b4f, 1.0);
   const sun = new THREE.DirectionalLight(0xffffff, 1.2);
   sun.position.set(30, 50, 12);
   scene.add(ambient, sun);
-
   function applySettings() {
     const sky = new THREE.Color(SKY[settings.sky] ?? SKY.day);
-    scene.background = sky;
-    scene.fog = settings.fog ? new THREE.Fog(sky, 25, 70) : null;
-    camera.fov = settings.fov;
-    camera.updateProjectionMatrix();
+    scene.background = sky; scene.fog = settings.fog ? new THREE.Fog(sky, 25, 70) : null;
+    camera.fov = settings.fov; camera.updateProjectionMatrix();
   }
-  applySettings();
 
-  // Textures (Bloxd default pack, 8×8 pixel art)
+  // ===== Orbit camera =====
+  let orbitTarget = new THREE.Vector3(SX / 2, SY / 2, SZ / 2);
+  let orbitRadius = 38, orbitTheta = Math.PI * 0.3, orbitPhi = Math.PI * 0.35;
+  function updateOrbitCamera() {
+    orbitPhi = Math.max(0.1, Math.min(Math.PI - 0.1, orbitPhi));
+    camera.position.set(
+      orbitTarget.x + orbitRadius * Math.sin(orbitPhi) * Math.cos(orbitTheta),
+      orbitTarget.y + orbitRadius * Math.cos(orbitPhi),
+      orbitTarget.z + orbitRadius * Math.sin(orbitPhi) * Math.sin(orbitTheta)
+    );
+    camera.lookAt(orbitTarget);
+  }
+
+  // ===== Grid =====
+  const grid = new THREE.GridHelper(Math.max(SX, SZ) + 2, Math.max(SX, SZ) + 2, 0x505050, 0x383838);
+  grid.position.set(SX / 2, 0, SZ / 2);
+  scene.add(grid);
+
+  // ===== Textures & materials =====
   const loader = new THREE.TextureLoader();
   loader.setPath("/textures/");
   const texCache = {};
   function tex(name) {
     if (!texCache[name]) {
       const t = loader.load(`${name}.png`);
-      t.magFilter = THREE.NearestFilter;
-      t.minFilter = THREE.NearestFilter;
-      t.colorSpace = THREE.SRGBColorSpace;
+      t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
       texCache[name] = t;
     }
     return texCache[name];
   }
-
   function blockMaterial(block) {
     const f = block.faces;
     const side = tex(f.side ?? f.all), top = tex(f.top ?? f.all), bottom = tex(f.bottom ?? f.all);
-    // BoxGeometry face order: +x, -x, +y, -y, +z, -z
-    const mats = [side, side, top, bottom, side, side].map((t) =>
-      new THREE.MeshLambertMaterial({ map: t, transparent: !!block.opacity, opacity: block.opacity ?? 1 }));
-    return mats;
+    const c = block.color ?? 0xffffff;
+    return [side, side, top, bottom, side, side].map((t) =>
+      new THREE.MeshLambertMaterial({ map: t, color: c, transparent: !!block.opacity, opacity: block.opacity ?? 1 }));
   }
-
   const materials = PALETTE.map((b) => (b ? blockMaterial(b) : null));
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-
   const meshGroup = new THREE.Group();
   scene.add(meshGroup);
   let typeMeshes = [];
-
   function rebuildAll() {
     for (const m of typeMeshes) { m.geometry.dispose(); meshGroup.remove(m); }
     typeMeshes = [];
@@ -295,142 +341,268 @@
       const id = +idStr;
       const mesh = new THREE.InstancedMesh(boxGeo, materials[id], cells.length);
       const m = new THREE.Matrix4();
-      cells.forEach(([x, y, z], i) => {
-        mesh.setMatrixAt(i, m.makeTranslation(x + 0.5, y + 0.5, z + 0.5));
-      });
+      cells.forEach(([x, y, z], i) => mesh.setMatrixAt(i, m.makeTranslation(x + 0.5, y + 0.5, z + 0.5)));
       mesh.userData.map = cells;
-      meshGroup.add(mesh);
-      typeMeshes.push(mesh);
+      meshGroup.add(mesh); typeMeshes.push(mesh);
     }
   }
 
-  // Block highlight
-  const highlight = new THREE.LineSegments(
+  // ===== Highlights =====
+  const hoverHighlight = new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002)),
-    new THREE.LineBasicMaterial({ color: 0xffffff }));
-  highlight.visible = false;
-  scene.add(highlight);
+    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 }));
+  hoverHighlight.visible = false; scene.add(hoverHighlight);
 
-  // ---------- Panels (inventory / shop / script / settings) ----------
-  const panels = ["inv-panel", "shop-panel", "code-panel", "settings"].map((id) => document.getElementById(id));
-  const overlay = document.getElementById("overlay");
-  const panelOpen = () => panels.some((p) => !p.classList.contains("hidden"));
+  const selectionHighlight = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)),
+    new THREE.LineBasicMaterial({ color: 0x00a2ff }));
+  selectionHighlight.visible = false; scene.add(selectionHighlight);
 
-  function refreshOverlay() {
-    overlay.classList.toggle("hidden", started && (locked || fallbackLook || panelOpen()));
+  // ===== Gizmo =====
+  const gizmoGroup = new THREE.Group();
+  gizmoGroup.visible = false; scene.add(gizmoGroup);
+  function createArrow(axis, color) {
+    const grp = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color });
+    const shaftLen = 1.0;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, shaftLen), mat);
+    shaft.position.y = shaftLen / 2; grp.add(shaft);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.3), mat);
+    head.position.y = shaftLen + 0.15; grp.add(head);
+    const pick = new THREE.Mesh(new THREE.BoxGeometry(0.4, shaftLen + 0.4, 0.4), new THREE.MeshBasicMaterial({ visible: false }));
+    pick.position.y = (shaftLen + 0.4) / 2; pick.userData = { axis }; grp.add(pick);
+    if (axis === "x") grp.rotation.z = -Math.PI / 2;
+    if (axis === "z") grp.rotation.x = Math.PI / 2;
+    return grp;
   }
-  function togglePanel(p) {
-    const open = !p.classList.contains("hidden");
-    panels.forEach((x) => x.classList.add("hidden"));
-    if (!open) {
-      p.classList.remove("hidden");
-      document.exitPointerLock?.();
-      if (p.id === "inv-panel") renderInventory();
-      if (p.id === "shop-panel") renderShop();
-    }
-    refreshOverlay();
-  }
-  for (const btn of document.querySelectorAll("[data-close]")) {
-    btn.addEventListener("click", () => { btn.closest(".game-panel").classList.add("hidden"); refreshOverlay(); });
-  }
-  document.getElementById("shop-btn").addEventListener("click", () => togglePanel(document.getElementById("shop-panel")));
-  document.getElementById("settings-btn").addEventListener("click", () => togglePanel(document.getElementById("settings")));
+  gizmoGroup.add(createArrow("x", 0xff4444), createArrow("y", 0x44ff44), createArrow("z", 0x4488ff));
 
-  // ---------- Player / controls ----------
-  let yaw = Math.PI * 0.25, pitch = -0.25;
-  const pos = new THREE.Vector3(SX / 2 + 0.5, 9, SZ / 2 + 0.5);
-  let started = false, locked = false, fallbackLook = false;
-
+  // ===== Raycasting =====
   const raycaster = new THREE.Raycaster();
-  raycaster.far = 8;
-
-  function look(dx, dy) {
-    yaw -= dx * 0.0022 * settings.sens;
-    pitch = Math.max(-1.55, Math.min(1.55, pitch - dy * 0.0022 * settings.sens));
-    camera.rotation.set(pitch, yaw, 0);
+  raycaster.far = 100;
+  function mouseNDC(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 };
+  }
+  function raycastGizmo(ndc) {
+    if (!gizmoGroup.visible || currentTool !== "select" || currentMode !== "studio") return null;
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(gizmoGroup.children, true);
+    for (const h of hits) { let o = h.object; while (o) { if (o.userData?.axis) return o.userData.axis; o = o.parent; } }
+    return null;
+  }
+  function raycastBlocks(ndc) {
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(meshGroup.children, false);
+    if (!hits.length) return null;
+    const h = hits[0]; const cell = h.object.userData.map[h.instanceId];
+    return cell ? { cell, normal: h.face.normal } : null;
+  }
+  function target() { // center-of-screen ray (play mode)
+    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+    raycaster.far = 8;
+    const hits = raycaster.intersectObjects(meshGroup.children, false);
+    if (!hits.length) return null;
+    const h = hits[0]; const cell = h.object.userData.map[h.instanceId];
+    return cell ? { cell, normal: h.face.normal } : null;
   }
 
-  function tryLock() {
-    try {
-      const p = canvas.requestPointerLock();
-      if (p && p.catch) p.catch(() => { fallbackLook = true; refreshOverlay(); });
-    } catch { fallbackLook = true; refreshOverlay(); }
+  // ===== Selection =====
+  let selectedBlock = null;
+  function selectBlock(x, y, z) {
+    const id = get(x, y, z);
+    if (!id) return;
+    selectedBlock = { x, y, z, typeId: id };
+    selectionHighlight.visible = true;
+    selectionHighlight.position.set(x + 0.5, y + 0.5, z + 0.5);
+    gizmoGroup.visible = true;
+    gizmoGroup.position.set(x + 0.5, y + 0.5, z + 0.5);
+    updateProperties(); updateExplorer();
   }
-  document.addEventListener("pointerlockchange", () => {
-    locked = document.pointerLockElement === canvas;
-    refreshOverlay();
-  });
-  document.addEventListener("mousemove", (e) => { if (locked) look(e.movementX, e.movementY); });
+  function deselectBlock() {
+    selectedBlock = null;
+    selectionHighlight.visible = false; gizmoGroup.visible = false;
+    updateProperties(); updateExplorer();
+  }
 
-  // Fallback (no pointer lock): drag to look, click to act
-  let dragBtn = -1, dragMoved = 0, lastX = 0, lastY = 0;
-  canvas.addEventListener("mousedown", (e) => {
-    if (!started || panelOpen()) return;
-    if (locked) {
-      if (e.button === 0) actBreak();
-      else if (e.button === 2) actPlace();
-      return;
-    }
-    if (fallbackLook) {
-      dragBtn = e.button; dragMoved = 0; lastX = e.clientX; lastY = e.clientY;
-    }
-  });
-  canvas.addEventListener("mousemove", (e) => {
-    if (fallbackLook && dragBtn >= 0) {
-      dragMoved += Math.abs(e.clientX - lastX) + Math.abs(e.clientY - lastY);
-      look(e.clientX - lastX, e.clientY - lastY);
-      lastX = e.clientX; lastY = e.clientY;
-    }
-  });
-  canvas.addEventListener("mouseup", (e) => {
-    if (fallbackLook && dragBtn >= 0) {
-      if (dragMoved < 5) { e.button === 0 ? actBreak() : actPlace(); }
-      dragBtn = -1;
-    }
-  });
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  // ===== Gizmo drag =====
+  let gizmoDrag = null;
+  function startGizmoDrag(axis) {
+    if (!selectedBlock) return;
+    const ax = new THREE.Vector3(axis === "x" ? 1 : 0, axis === "y" ? 1 : 0, axis === "z" ? 1 : 0);
+    const camDir = camera.getWorldDirection(new THREE.Vector3());
+    let n = camDir.clone().sub(ax.clone().multiplyScalar(camDir.dot(ax)));
+    if (n.lengthSq() < 0.001) n.set(0, 1, 0).sub(ax.clone().multiplyScalar(ax.y));
+    n.normalize();
+    const ctr = new THREE.Vector3(selectedBlock.x + 0.5, selectedBlock.y + 0.5, selectedBlock.z + 0.5);
+    gizmoDrag = { axis, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, ctr) };
+  }
+  function updateGizmoDrag(e) {
+    if (!gizmoDrag || !selectedBlock) return;
+    raycaster.setFromCamera(mouseNDC(e), camera);
+    const pt = new THREE.Vector3();
+    if (!raycaster.ray.intersectPlane(gizmoDrag.plane, pt)) return;
+    const a = gizmoDrag.axis, nx = selectedBlock.x, ny = selectedBlock.y, nz = selectedBlock.z;
+    let tx = nx, ty = ny, tz = nz;
+    if (a === "x") tx = Math.round(pt.x - 0.5); else if (a === "y") ty = Math.round(pt.y - 0.5); else tz = Math.round(pt.z - 0.5);
+    tx = Math.max(0, Math.min(SX - 1, tx)); ty = Math.max(0, Math.min(SY - 1, ty)); tz = Math.max(0, Math.min(SZ - 1, tz));
+    if (tx === nx && ty === ny && tz === nz) return;
+    if (get(tx, ty, tz) !== 0) return;
+    set(nx, ny, nz, 0); set(tx, ty, tz, selectedBlock.typeId);
+    selectedBlock.x = tx; selectedBlock.y = ty; selectedBlock.z = tz;
+    rebuildAll();
+    selectionHighlight.position.set(tx + 0.5, ty + 0.5, tz + 0.5);
+    gizmoGroup.position.set(tx + 0.5, ty + 0.5, tz + 0.5);
+    updateProperties();
+  }
+  function endGizmoDrag() { if (gizmoDrag) { gizmoDrag = null; save(); updateExplorer(); } }
 
-  overlay.addEventListener("click", (event) => {
-    if (event.target.closest("a, button")) return;
-    started = true;
-    tryLock();
-    refreshOverlay();
-  });
-  document.getElementById("leave-builder").addEventListener("click", () => {
-    document.exitPointerLock?.();
+  // ===== Tools =====
+  let currentTool = "select", currentMode = "studio";
+  function setTool(t) {
+    currentTool = t;
+    document.querySelectorAll(".studio-tool[data-tool]").forEach((b) => b.classList.toggle("active", b.dataset.tool === t));
+    document.getElementById("status-tool").textContent = "Tool: " + t.charAt(0).toUpperCase() + t.slice(1);
+    canvas.style.cursor = t === "select" ? "default" : t === "build" ? "crosshair" : "not-allowed";
+  }
+  document.querySelectorAll(".studio-tool[data-tool]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.tool)));
+
+  function studioSelect(ndc) {
+    const t = raycastBlocks(ndc);
+    if (!t) { deselectBlock(); return; }
+    selectBlock(t.cell[0], t.cell[1], t.cell[2]);
+  }
+  function studioBuild(ndc) {
+    const id = hotbarIds[selected]; if (!id) return;
+    const t = raycastBlocks(ndc); if (!t) return;
+    const x = t.cell[0] + Math.round(t.normal.x), y = t.cell[1] + Math.round(t.normal.y), z = t.cell[2] + Math.round(t.normal.z);
+    if (get(x, y, z)) return;
+    set(x, y, z, id); rebuildAll(); save(); updateExplorer(); updateStatus(null, countBlocks(), null);
+  }
+  function studioDelete(ndc) {
+    const t = raycastBlocks(ndc); if (!t) return;
+    const [x, y, z] = t.cell;
+    if (get(x, y, z)) coins += 1;
+    set(x, y, z, 0); rebuildAll(); save(); saveEconomy(); renderCoins();
+    if (selectedBlock && selectedBlock.x === x && selectedBlock.y === y && selectedBlock.z === z) deselectBlock();
+    updateExplorer(); updateStatus(null, countBlocks(), null);
+  }
+
+  // ===== Ribbon tabs =====
+  document.querySelectorAll(".ribbon-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".ribbon-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll(".studio-ribbon-tools").forEach((r) => r.classList.add("hidden"));
+      document.getElementById("ribbon-" + tab.dataset.tab).classList.remove("hidden");
+      if (tab.dataset.tab === "model") renderModelPalette();
+    });
   });
 
-  const keys = {};
-  addEventListener("keydown", (e) => {
-    const tag = document.activeElement?.tagName;
-    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") { keys[e.code] = false; return; }
-    keys[e.code] = true;
-    const digit = /^Digit([1-9])$/.exec(e.code);
-    if (digit) selectSlot(+digit[1] - 1);
-    if (e.code === "Tab") { e.preventDefault(); togglePanel(document.getElementById("inv-panel")); }
-    if (e.code === "KeyX") togglePanel(document.getElementById("code-panel"));
-    if (e.code === "KeyB") togglePanel(document.getElementById("shop-panel"));
-    if (e.code === "Escape") { panels.forEach((p) => p.classList.add("hidden")); refreshOverlay(); }
+  // ===== Model palette =====
+  function renderModelPalette() {
+    const c = document.getElementById("model-palette"); c.innerHTML = "";
+    PALETTE.forEach((b, id) => {
+      if (!b) return;
+      const owned = unlocked.has(b.name);
+      const btn = document.createElement("button");
+      btn.className = "studio-tool"; btn.style.opacity = owned ? "1" : "0.4";
+      btn.innerHTML = `<span style="display:inline-block;width:14px;height:14px;background:${colorHex(b)};border-radius:3px;vertical-align:middle"></span> ${b.label}`;
+      btn.title = b.label + (owned ? "" : " (locked)");
+      btn.addEventListener("click", () => { if (!owned) { openModal("shop-modal"); renderShop(); return; } hotbarIds[selected] = id; saveEconomy(); renderHotbar(); });
+      c.appendChild(btn);
+    });
+  }
+
+  // ===== View tab =====
+  document.getElementById("toggle-explorer").addEventListener("click", function () {
+    const ex = document.getElementById("studio-explorer");
+    ex.classList.toggle("hidden"); this.classList.toggle("active", !ex.classList.contains("hidden"));
   });
-  addEventListener("keyup", (e) => { keys[e.code] = false; });
-  addEventListener("wheel", (e) => {
-    if (started && (locked || fallbackLook) && !panelOpen()) {
-      selectSlot((selected + (e.deltaY > 0 ? 1 : -1) + 9) % 9);
+  document.getElementById("toggle-properties").addEventListener("click", function () {
+    const pr = document.getElementById("studio-properties");
+    pr.classList.toggle("hidden"); this.classList.toggle("active", !pr.classList.contains("hidden"));
+  });
+  document.getElementById("toggle-grid").addEventListener("click", function () {
+    grid.visible = !grid.visible; this.classList.toggle("active", grid.visible);
+  });
+  document.getElementById("reset-camera").addEventListener("click", () => {
+    orbitTarget.set(SX / 2, SY / 2, SZ / 2); orbitRadius = 38; orbitTheta = Math.PI * 0.3; orbitPhi = Math.PI * 0.35; updateOrbitCamera();
+  });
+
+  // ===== Explorer =====
+  function updateExplorer() {
+    const tree = document.getElementById("explorer-tree");
+    const counts = {};
+    for (let i = 0; i < world.length; i++) { const id = world[i]; if (id) { const n = PALETTE[id]?.name || "?"; counts[n] = (counts[n] || 0) + 1; } }
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const selName = selectedBlock ? PALETTE[selectedBlock.typeId]?.name : null;
+    let html = `<div class="explorer-node"><span class="explorer-node-icon">📁</span><span class="explorer-node-label">Workspace</span></div><div class="explorer-children">`;
+    html += `<div class="explorer-node"><span class="explorer-node-icon">🌍</span><span class="explorer-node-label">World (${SX}×${SY}×${SZ})</span><span class="explorer-node-count">${total}</span></div><div class="explorer-children">`;
+    for (const [name, cnt] of Object.entries(counts).sort((a, b) => b[1] - a[1])) {
+      const b = PALETTE[byName(name)];
+      html += `<div class="explorer-node ${selName === name ? "selected" : ""}"><span class="explorer-node-icon" style="background:${colorHex(b)};border-radius:3px;width:12px;height:12px"></span><span class="explorer-node-label">${b?.label || name}</span><span class="explorer-node-count">${cnt}</span></div>`;
     }
-  }, { passive: true });
+    html += `</div><div class="explorer-node"><span class="explorer-node-icon">💡</span><span class="explorer-node-label">Lighting</span></div><div class="explorer-children">`;
+    html += `<div class="explorer-node"><span class="explorer-node-icon">${settings.sky === "day" ? "☀" : "🌙"}</span><span class="explorer-node-label">Sky: ${settings.sky}</span></div>`;
+    html += `<div class="explorer-node"><span class="explorer-node-icon">🌫</span><span class="explorer-node-label">Fog: ${settings.fog ? "On" : "Off"}</span></div></div>`;
+    html += `<div class="explorer-node"><span class="explorer-node-icon">📷</span><span class="explorer-node-label">Camera (FOV ${settings.fov})</span></div></div>`;
+    tree.innerHTML = html;
+  }
 
-  // ---------- Hotbar ----------
+  // ===== Properties =====
+  function updateProperties() {
+    const c = document.getElementById("prop-content");
+    if (!selectedBlock) { c.innerHTML = '<p class="prop-empty">Select a block to view its properties.</p>'; return; }
+    const b = PALETTE[selectedBlock.typeId];
+    c.innerHTML = `
+      <div class="prop-section"><div class="prop-section-title">Block</div>
+        <div class="prop-row"><span class="prop-label">Name</span><span class="prop-value">${b?.label || "?"}</span></div>
+        <div class="prop-row"><span class="prop-label">Type</span><select class="prop-input select" id="prop-type">${PALETTE.filter(x => x).map(x => `<option value="${x.name}" ${x.name === b?.name ? "selected" : ""}>${x.label}</option>`).join("")}</select></div>
+      </div>
+      <div class="prop-section"><div class="prop-section-title">Position</div>
+        <div class="prop-row"><span class="prop-label">X</span><input class="prop-input" type="number" id="prop-x" value="${selectedBlock.x}" min="0" max="${SX - 1}"></div>
+        <div class="prop-row"><span class="prop-label">Y</span><input class="prop-input" type="number" id="prop-y" value="${selectedBlock.y}" min="0" max="${SY - 1}"></div>
+        <div class="prop-row"><span class="prop-label">Z</span><input class="prop-input" type="number" id="prop-z" value="${selectedBlock.z}" min="0" max="${SZ - 1}"></div>
+      </div>`;
+    document.getElementById("prop-type")?.addEventListener("change", (e) => {
+      const nid = byName(e.target.value); if (nid < 1) return;
+      set(selectedBlock.x, selectedBlock.y, selectedBlock.z, nid); selectedBlock.typeId = nid;
+      rebuildAll(); save(); updateProperties(); updateExplorer();
+    });
+    for (const a of ["x", "y", "z"]) {
+      document.getElementById("prop-" + a)?.addEventListener("change", (e) => {
+        const v = parseInt(e.target.value), ox = selectedBlock.x, oy = selectedBlock.y, oz = selectedBlock.z;
+        const nx = a === "x" ? v : ox, ny = a === "y" ? v : oy, nz = a === "z" ? v : oz;
+        if (get(nx, ny, nz) === 0 || (nx === ox && ny === oy && nz === oz)) {
+          set(ox, oy, oz, 0); set(nx, ny, nz, selectedBlock.typeId);
+          selectedBlock.x = nx; selectedBlock.y = ny; selectedBlock.z = nz;
+          rebuildAll(); save();
+          selectionHighlight.position.set(nx + 0.5, ny + 0.5, nz + 0.5);
+          gizmoGroup.position.set(nx + 0.5, ny + 0.5, nz + 0.5);
+        }
+      });
+    }
+  }
+
+  // ===== Status bar =====
+  function updateStatus(pos, blocks, tool) {
+    if (pos !== null) document.getElementById("status-pos").textContent = pos;
+    if (blocks !== null) document.getElementById("status-blocks").textContent = "Blocks: " + blocks;
+    if (tool !== null) document.getElementById("status-tool").textContent = "Tool: " + tool;
+  }
+
+  // ===== Hotbar =====
   const hotbar = document.getElementById("hotbar");
   let selected = 0;
   function renderHotbar() {
     hotbar.innerHTML = "";
     hotbarIds.forEach((id, i) => {
-      const block = PALETTE[id] ?? null;
+      const b = PALETTE[id] ?? null;
       const slot = document.createElement("button");
       slot.className = "slot" + (i === selected ? " active" : "");
-      slot.title = block ? block.label : "Empty";
+      slot.title = b ? b.label : "Empty";
       slot.innerHTML = `<span class="num">${i + 1}</span>` +
-        (block ? `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` : `<span class="empty">—</span>`);
+        (b ? `<img src="/textures/${b.faces.side ?? b.faces.all}.png" alt="${b.label}" style="background:${colorHex(b)}" onerror="this.style.opacity=0">` : `<span class="empty">—</span>`);
       slot.addEventListener("click", () => { selectSlot(i); slot.blur(); });
       hotbar.appendChild(slot);
     });
@@ -440,62 +612,46 @@
     for (const [j, s] of [...hotbar.children].entries()) s.classList.toggle("active", j === i);
   }
 
-  // ---------- Inventory ----------
+  // ===== Inventory =====
   const invGrid = document.getElementById("inv-grid");
   function renderInventory() {
     invGrid.innerHTML = "";
-    PALETTE.forEach((block, id) => {
-      if (!block) return;
-      const owned = unlocked.has(block.name);
+    PALETTE.forEach((b, id) => {
+      if (!b) return;
+      const owned = unlocked.has(b.name);
       const item = document.createElement("button");
       item.className = "inv-item" + (owned ? "" : " locked");
-      item.title = block.label;
-      item.innerHTML = `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` +
-        (owned ? "" : `<span class="lock">🔒${block.price}</span>`);
+      item.title = b.label;
+      item.innerHTML = `<img src="/textures/${b.faces.side ?? b.faces.all}.png" alt="${b.label}" style="background:${colorHex(b)}" onerror="this.style.opacity=0">` +
+        (owned ? "" : `<span class="lock">🔒${b.price}</span>`);
       item.addEventListener("click", () => {
-        if (!owned) { togglePanel(document.getElementById("shop-panel")); return; }
-        hotbarIds[selected] = id;
-        saveEconomy();
-        renderHotbar();
+        if (!owned) { openModal("shop-modal"); renderShop(); return; }
+        hotbarIds[selected] = id; saveEconomy(); renderHotbar();
       });
       invGrid.appendChild(item);
     });
   }
 
-  // ---------- Shop ----------
+  // ===== Shop =====
   const shopList = document.getElementById("shop-list");
   function renderShop() {
     shopList.innerHTML = "";
-    PALETTE.forEach((block, id) => {
-      if (!block) return;
-      const owned = unlocked.has(block.name);
-      const row = document.createElement("div");
-      row.className = "shop-row";
-      row.innerHTML = `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">
-        <span class="shop-name">${block.label}</span>
-        <span class="shop-price">${owned ? "Owned" : `🪙 ${block.price}`}</span>`;
+    PALETTE.forEach((b, id) => {
+      if (!b) return;
+      const owned = unlocked.has(b.name);
+      const row = document.createElement("div"); row.className = "shop-row";
+      row.innerHTML = `<img src="/textures/${b.faces.side ?? b.faces.all}.png" alt="${b.label}" style="background:${colorHex(b)}" onerror="this.style.opacity=0"><span class="shop-name">${b.label}</span><span class="shop-price">${owned ? "Owned" : `🪙 ${b.price}`}</span>`;
       const btn = document.createElement("button");
-      btn.className = "btn btn-primary buy-btn";
-      btn.textContent = owned ? "✓" : "Buy";
-      btn.disabled = owned || coins < block.price;
-      btn.addEventListener("click", () => {
-        if (owned || coins < block.price) return;
-        coins -= block.price;
-        unlocked.add(block.name);
-        saveEconomy();
-        renderCoins();
-        renderShop();
-      });
-      row.appendChild(btn);
-      shopList.appendChild(row);
+      btn.className = "btn btn-primary buy-btn"; btn.textContent = owned ? "✓" : "Buy";
+      btn.disabled = owned || coins < b.price;
+      btn.addEventListener("click", () => { if (owned || coins < b.price) return; coins -= b.price; unlocked.add(b.name); saveEconomy(); renderCoins(); renderShop(); });
+      row.appendChild(btn); shopList.appendChild(row);
     });
     renderCoins();
   }
 
-  // ---------- Script editor ----------
-  const codePanel = document.getElementById("code-panel");
-  const codeEl = document.getElementById("code");
-  const codeOut = document.getElementById("code-output");
+  // ===== Script editor =====
+  const codeEl = document.getElementById("code"), codeOut = document.getElementById("code-output");
   const CODE_KEY = "bloxd.script3d";
   codeEl.value = localStorage.getItem(CODE_KEY) ??
 `// BloxdBuilder script — press ▶ Run.
@@ -507,196 +663,237 @@
 const [w, h, d] = api.size;
 console.log("World size:", w, "x", h, "x", d);
 
-// Stamp a small gold platform in the sky
-for (let x = 10; x < 14; x++) {
-  for (let z = 10; z < 14; z++) {
-    api.setBlock(x, h - 3, z, "gold");
-  }
-}
+for (let x = 10; x < 14; x++) for (let z = 10; z < 14; z++) api.setBlock(x, h - 3, z, "gold");
 console.log("Built a gold platform!");
 `;
-
-  document.getElementById("code-save").addEventListener("click", () => {
-    localStorage.setItem(CODE_KEY, codeEl.value);
-    codeOut.textContent = "Saved ✓";
-  });
+  document.getElementById("code-save").addEventListener("click", () => { localStorage.setItem(CODE_KEY, codeEl.value); codeOut.textContent = "Saved ✓"; });
   document.getElementById("code-run").addEventListener("click", () => {
-    const lines = [];
-    const log = (...args) => lines.push(args.map(String).join(" "));
-    const fakeConsole = { log, info: log, warn: log, error: log };
+    const lines = []; const log = (...a) => lines.push(a.map(String).join(" "));
+    const fc = { log, info: log, warn: log, error: log };
     const api = {
-      size: [SX, SY, SZ],
-      blocks: PALETTE.filter(Boolean).map((b) => b.name),
+      size: [SX, SY, SZ], blocks: PALETTE.filter(Boolean).map((b) => b.name),
       getBlock: (x, y, z) => { const id = get(x, y, z); return id ? PALETTE[id].name : null; },
-      setBlock: (x, y, z, name) => {
-        const id = byName(name);
-        if (id < 1) { log(`Unknown block "${name}"`); return false; }
-        set(x, y, z, id);
-        rebuildAll();
-        save();
-        return true;
-      },
+      setBlock: (x, y, z, name) => { const id = byName(name); if (id < 1) { log(`Unknown block "${name}"`); return false; } set(x, y, z, id); rebuildAll(); save(); return true; },
     };
-    try {
-      new Function("api", "console", codeEl.value)(api, fakeConsole);
-      lines.push("// finished without errors");
-    } catch (err) {
-      lines.push("ERROR: " + err.message);
-    }
+    try { new Function("api", "console", codeEl.value)(api, fc); lines.push("// finished without errors"); } catch (e) { lines.push("ERROR: " + e.message); }
     codeOut.textContent = lines.join("\n") || "(no output)";
   });
 
-  // ---------- Break / place ----------
-  function target() {
-    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-    const hits = raycaster.intersectObjects(meshGroup.children, false);
-    if (!hits.length) return null;
-    const h = hits[0];
-    const cell = h.object.userData.map[h.instanceId];
-    if (!cell) return null;
-    return { cell, normal: h.face.normal };
-  }
-
-  function actBreak() {
-    const t = target();
-    if (!t) return;
-    const [x, y, z] = t.cell;
-    if (get(x, y, z)) coins += 1;   // earn a coin per block broken
-    set(x, y, z, 0);
-    rebuildAll();
-    save();
-    saveEconomy();
-    renderCoins();
-  }
-
-  function actPlace() {
-    const id = hotbarIds[selected];
-    if (!id) return;
-    const t = target();
-    if (!t) return;
-    const x = t.cell[0] + Math.round(t.normal.x);
-    const y = t.cell[1] + Math.round(t.normal.y);
-    const z = t.cell[2] + Math.round(t.normal.z);
-    if (get(x, y, z)) return;
-    set(x, y, z, id);
-    rebuildAll();
-    save();
-  }
-
-  // ---------- Export / import ----------
+  // ===== Export / import =====
   const io = document.getElementById("io");
   document.getElementById("export-btn").addEventListener("click", () => {
-    io.value = JSON.stringify({
-      size: [SX, SY, SZ],
-      palette: PALETTE.map((b) => b ? b.name : null),
-      world: Array.from(world),
-    });
-    io.select();
-    try { document.execCommand("copy"); } catch {}
+    io.value = JSON.stringify({ size: [SX, SY, SZ], palette: PALETTE.map((b) => b ? b.name : null), world: Array.from(world) });
+    io.select(); try { document.execCommand("copy"); } catch {}
   });
   document.getElementById("import-btn").addEventListener("click", () => {
     try {
-      const data = JSON.parse(io.value);
-      if (data.size?.join() === `${SX},${SY},${SZ}` && Array.isArray(data.world) && data.world.length === SX * SY * SZ) {
-        world = Uint8Array.from(data.world);
-        rebuildAll();
-        save();
-        document.getElementById("settings").classList.add("hidden");
-        refreshOverlay();
-      } else {
-        alert(`Expected a ${SX}×${SY}×${SZ} world.`);
+      const d = JSON.parse(io.value);
+      if (d.size?.join() === `${SX},${SY},${SZ}` && Array.isArray(d.world) && d.world.length === SX * SY * SZ) {
+        world = Uint8Array.from(d.world); rebuildAll(); save(); closeAllModals(); updateExplorer(); updateStatus(null, countBlocks(), null);
+      } else alert(`Expected a ${SX}×${SY}×${SZ} world.`);
+    } catch { alert("That isn't valid JSON."); }
+  });
+  function exportSchematic() { return { size: [SX, SY, SZ], palette: PALETTE.map((b) => b ? b.name : null), world: Array.from(world) }; }
+  function isValidSchematic(d) { return d && Array.isArray(d.size) && d.size.join() === `${SX},${SY},${SZ}` && Array.isArray(d.world) && d.world.length === SX * SY * SZ && d.world.every((id) => Number.isInteger(id) && id >= 0 && id < PALETTE.length); }
+  function downloadSchematic(d) { const b = new Blob([JSON.stringify(d)], { type: "application/octet-stream" }); const u = URL.createObjectURL(b); const l = document.createElement("a"); l.href = u; l.download = "world.bloxdschem"; l.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+  document.getElementById("export-schematic-btn").addEventListener("click", () => { downloadSchematic(exportSchematic()); document.getElementById("schematic-status").textContent = "Downloaded world.bloxdschem."; });
+  document.getElementById("schematic-file").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return; const st = document.getElementById("schematic-status");
+    try { const d = JSON.parse(await f.text()); if (!isValidSchematic(d)) throw new Error(`Expected a valid ${SX}×${SY}×${SZ} Bloxd schematic.`); world = Uint8Array.from(d.world); rebuildAll(); save(); st.textContent = `Imported ${f.name}.`; updateExplorer(); updateStatus(null, countBlocks(), null); } catch (err) { st.textContent = err.message || "Could not import."; } finally { e.target.value = ""; }
+  });
+
+  // ===== Modals =====
+  const MODAL_IDS = ["inv-modal", "shop-modal", "script-modal", "settings-modal"];
+  const modalOpen = () => MODAL_IDS.some((id) => !document.getElementById(id).classList.contains("hidden"));
+  function openModal(id) { closeAllModals(); document.getElementById(id).classList.remove("hidden"); document.getElementById("modal-overlay").classList.remove("hidden"); }
+  function closeAllModals() { MODAL_IDS.forEach((id) => document.getElementById(id).classList.add("hidden")); document.getElementById("modal-overlay").classList.add("hidden"); }
+  document.getElementById("modal-overlay").addEventListener("click", closeAllModals);
+  document.querySelectorAll("[data-close-modal]").forEach((b) => b.addEventListener("click", closeAllModals));
+  document.getElementById("inv-btn").addEventListener("click", () => { if (document.getElementById("inv-modal").classList.contains("hidden")) { openModal("inv-modal"); renderInventory(); } else closeAllModals(); });
+  document.getElementById("shop-btn").addEventListener("click", () => { openModal("shop-modal"); renderShop(); });
+  document.getElementById("script-btn").addEventListener("click", () => openModal("script-modal"));
+  document.getElementById("settings-btn").addEventListener("click", () => openModal("settings-modal"));
+
+  // ===== Play mode (first-person) =====
+  let started = false, locked = false, fallbackLook = false;
+  let yaw = Math.PI * 0.25, pitch = -0.25;
+  const pos = new THREE.Vector3(SX / 2 + 0.5, 9, SZ / 2 + 0.5);
+  const keys = {};
+  const overlay = document.getElementById("overlay");
+  const crosshair = document.getElementById("crosshair");
+
+  function look(dx, dy) { yaw -= dx * 0.0022 * settings.sens; pitch = Math.max(-1.55, Math.min(1.55, pitch - dy * 0.0022 * settings.sens)); camera.rotation.set(pitch, yaw, 0); }
+  function tryLock() { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { fallbackLook = true; refreshOverlay(); }); } catch { fallbackLook = true; refreshOverlay(); } }
+  document.addEventListener("pointerlockchange", () => { locked = document.pointerLockElement === canvas; refreshOverlay(); });
+  document.addEventListener("mousemove", (e) => { if (currentMode === "play" && locked) look(e.movementX, e.movementY); });
+
+  function refreshOverlay() {
+    if (currentMode !== "play") { overlay.classList.add("hidden"); crosshair.classList.add("hidden"); return; }
+    overlay.classList.toggle("hidden", started && (locked || fallbackLook) && !modalOpen());
+    crosshair.classList.toggle("hidden", !locked);
+  }
+
+  function enterPlay() {
+    currentMode = "play";
+    document.getElementById("studio-right").classList.add("hidden");
+    document.getElementById("statusbar").classList.add("hidden");
+    document.querySelectorAll(".studio-ribbon-tools").forEach((r) => r.classList.add("hidden"));
+    closeAllModals(); deselectBlock();
+    started = false; locked = false; fallbackLook = false;
+    overlay.classList.remove("hidden");
+    resizeCanvas();
+  }
+  function exitPlay() {
+    currentMode = "studio";
+    document.exitPointerLock?.();
+    document.getElementById("studio-right").classList.remove("hidden");
+    document.getElementById("statusbar").classList.remove("hidden");
+    document.getElementById("ribbon-" + document.querySelector(".ribbon-tab.active").dataset.tab).classList.remove("hidden");
+    overlay.classList.add("hidden"); crosshair.classList.add("hidden");
+    started = false; locked = false;
+    setTool(currentTool);
+    updateOrbitCamera(); resizeCanvas();
+  }
+  document.getElementById("play-btn").addEventListener("click", () => { if (currentMode === "studio") enterPlay(); });
+  overlay.addEventListener("click", (e) => {
+    if (e.target.closest("a, button")) return;
+    if (currentMode !== "play") return;
+    started = true; tryLock(); refreshOverlay();
+  });
+
+  function actBreak() {
+    const t = target(); if (!t) return;
+    const [x, y, z] = t.cell; if (get(x, y, z)) coins += 1;
+    set(x, y, z, 0); rebuildAll(); save(); saveEconomy(); renderCoins();
+  }
+  function actPlace() {
+    const id = hotbarIds[selected]; if (!id) return;
+    const t = target(); if (!t) return;
+    const x = t.cell[0] + Math.round(t.normal.x), y = t.cell[1] + Math.round(t.normal.y), z = t.cell[2] + Math.round(t.normal.z);
+    if (get(x, y, z)) return;
+    set(x, y, z, id); rebuildAll(); save();
+  }
+
+  // ===== Mouse (studio + play) =====
+  let mouseDown = false, mouseBtn = -1, lastX = 0, lastY = 0;
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("mousedown", (e) => {
+    if (currentMode === "play") {
+      if (!started || modalOpen()) return;
+      if (locked) { if (e.button === 0) actBreak(); else if (e.button === 2) actPlace(); return; }
+      if (fallbackLook) { mouseDown = true; mouseBtn = e.button; lastX = e.clientX; lastY = e.clientY; dragMoved = 0; }
+      return;
+    }
+    mouseDown = true; mouseBtn = e.button; lastX = e.clientX; lastY = e.clientY;
+    if (e.button !== 0) return;
+    const ndc = mouseNDC(e);
+    if (currentTool === "select") {
+      const g = raycastGizmo(ndc);
+      if (g) { startGizmoDrag(g); return; }
+      studioSelect(ndc);
+    } else if (currentTool === "build") studioBuild(ndc);
+    else if (currentTool === "delete") studioDelete(ndc);
+  });
+  let dragMoved = 0;
+  canvas.addEventListener("mousemove", (e) => {
+    if (currentMode === "play") {
+      if (fallbackLook && mouseDown && mouseBtn >= 0) {
+        dragMoved += Math.abs(e.clientX - lastX) + Math.abs(e.clientY - lastY);
+        look(e.clientX - lastX, e.clientY - lastY); lastX = e.clientX; lastY = e.clientY;
       }
-    } catch {
-      alert("That isn't valid JSON.");
+      return;
+    }
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (gizmoDrag) { updateGizmoDrag(e); lastX = e.clientX; lastY = e.clientY; return; }
+    if (mouseDown) {
+      if (mouseBtn === 2) { orbitTheta -= dx * 0.01; orbitPhi -= dy * 0.01; updateOrbitCamera(); }
+      else if (mouseBtn === 1 || (mouseBtn === 0 && e.shiftKey)) {
+        const s = orbitRadius * 0.0015;
+        const right = new THREE.Vector3(), up = new THREE.Vector3();
+        camera.matrix.extractBasis(right, up, new THREE.Vector3());
+        orbitTarget.addScaledVector(right, -dx * s); orbitTarget.addScaledVector(up, dy * s);
+        updateOrbitCamera();
+      }
+    } else {
+      const t = raycastBlocks(mouseNDC(e));
+      if (t) { hoverHighlight.visible = true; hoverHighlight.position.set(t.cell[0] + 0.5, t.cell[1] + 0.5, t.cell[2] + 0.5); updateStatus(`X: ${t.cell[0]} Y: ${t.cell[1]} Z: ${t.cell[2]}`, null, null); }
+      else { hoverHighlight.visible = false; updateStatus("X: — Y: — Z: —", null, null); }
+    }
+    lastX = e.clientX; lastY = e.clientY;
+  });
+  canvas.addEventListener("mouseup", (e) => {
+    if (currentMode === "play") {
+      if (fallbackLook && mouseDown && mouseBtn >= 0) { if (dragMoved < 5) { e.button === 0 ? actBreak() : actPlace(); } mouseDown = false; mouseBtn = -1; }
+      return;
+    }
+    if (gizmoDrag) endGizmoDrag();
+    mouseDown = false; mouseBtn = -1;
+  });
+  canvas.addEventListener("wheel", (e) => {
+    if (currentMode === "play") { if (started && (locked || fallbackLook) && !modalOpen()) { e.preventDefault(); selectSlot((selected + (e.deltaY > 0 ? 1 : -1) + 9) % 9); } return; }
+    orbitRadius = Math.max(5, Math.min(80, orbitRadius + e.deltaY * 0.02)); updateOrbitCamera();
+  }, { passive: false });
+
+  // ===== Keyboard =====
+  addEventListener("keydown", (e) => {
+    const tag = document.activeElement?.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") { keys[e.code] = false; return; }
+    keys[e.code] = true;
+    const digit = /^Digit([1-9])$/.exec(e.code);
+    if (digit) selectSlot(+digit[1] - 1);
+    if (e.code === "Tab") { e.preventDefault(); if (document.getElementById("inv-modal").classList.contains("hidden")) { openModal("inv-modal"); renderInventory(); } else closeAllModals(); }
+    if (e.code === "KeyX" && currentMode === "studio") { if (document.getElementById("script-modal").classList.contains("hidden")) openModal("script-modal"); else closeAllModals(); }
+    if (e.code === "KeyB" && currentMode === "studio") { openModal("shop-modal"); renderShop(); }
+    if (e.code === "Escape") {
+      if (modalOpen()) { closeAllModals(); return; }
+      if (currentMode === "play") { exitPlay(); return; }
+      if (selectedBlock) { deselectBlock(); return; }
     }
   });
+  addEventListener("keyup", (e) => { keys[e.code] = false; });
 
-  function exportSchematic() {
-    return {
-      size: [SX, SY, SZ],
-      palette: PALETTE.map((block) => block ? block.name : null),
-      world: Array.from(world),
-    };
+  // ===== Resize =====
+  function resizeCanvas() {
+    const vp = document.querySelector(".studio-viewport");
+    if (!vp) return;
+    const w = vp.clientWidth, h = vp.clientHeight;
+    if (w === 0 || h === 0) return;
+    camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h, false);
   }
-  function isValidSchematic(data) {
-    return data && Array.isArray(data.size) && data.size.join() === `${SX},${SY},${SZ}` &&
-      Array.isArray(data.world) && data.world.length === SX * SY * SZ &&
-      data.world.every((id) => Number.isInteger(id) && id >= 0 && id < PALETTE.length);
-  }
-  function downloadSchematic(data) {
-    const blob = new Blob([JSON.stringify(data)], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "world.bloxdschem";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  document.getElementById("export-schematic-btn").addEventListener("click", () => {
-    downloadSchematic(exportSchematic());
-    document.getElementById("schematic-status").textContent = "Downloaded world.bloxdschem.";
-  });
-  document.getElementById("schematic-file").addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    const status = document.getElementById("schematic-status");
-    try {
-      const data = JSON.parse(await file.text());
-      if (!isValidSchematic(data)) {
-        throw new Error(`Expected a valid ${SX}×${SY}×${SZ} Bloxd schematic.`);
-      }
-      world = Uint8Array.from(data.world);
-      rebuildAll();
-      save();
-      status.textContent = `Imported ${file.name}.`;
-    } catch (error) {
-      status.textContent = error.message || "Could not import this schematic.";
-    } finally {
-      event.target.value = "";
-    }
-  });
+  new ResizeObserver(resizeCanvas).observe(document.querySelector(".studio-viewport"));
 
-  // ---------- Loop ----------
-  load();
-  renderCoins();
-  renderHotbar();
-  rebuildAll();
-
+  // ===== Render loop =====
   const clock = new THREE.Clock();
   function frame() {
     const dt = Math.min(clock.getDelta(), 0.1);
-    if (started && !panelOpen()) {
+    if (currentMode === "play" && started && !modalOpen()) {
       const speed = 10 * dt;
-      const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-      const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+      const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
       let mx = 0, mz = 0;
-      if (keys.KeyW) { mx += fwdX; mz += fwdZ; }
-      if (keys.KeyS) { mx -= fwdX; mz -= fwdZ; }
-      if (keys.KeyD) { mx += rightX; mz += rightZ; }
-      if (keys.KeyA) { mx -= rightX; mz -= rightZ; }
+      if (keys.KeyW) { mx += fx; mz += fz; } if (keys.KeyS) { mx -= fx; mz -= fz; }
+      if (keys.KeyD) { mx += rx; mz += rz; } if (keys.KeyA) { mx -= rx; mz -= rz; }
       pos.x += mx * speed; pos.z += mz * speed;
       if (keys.Space) pos.y += speed;
       if (keys.ShiftLeft || keys.ShiftRight) pos.y -= speed;
       pos.x = Math.max(0.5, Math.min(SX - 0.5, pos.x));
       pos.y = Math.max(0.5, Math.min(SY + 10, pos.y));
       pos.z = Math.max(0.5, Math.min(SZ - 0.5, pos.z));
+      camera.position.copy(pos);
+      if (currentMode === "play" && started && (locked || fallbackLook) && !modalOpen()) {
+        const t = target();
+        if (t) { hoverHighlight.visible = true; hoverHighlight.position.set(t.cell[0] + 0.5, t.cell[1] + 0.5, t.cell[2] + 0.5); }
+        else hoverHighlight.visible = false;
+      }
     }
-    camera.position.copy(pos);
-
-    const t = (!panelOpen()) ? target() : null;
-    if (t) { highlight.visible = true; highlight.position.set(t.cell[0] + 0.5, t.cell[1] + 0.5, t.cell[2] + 0.5); }
-    else highlight.visible = false;
-
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
-  frame();
 
-  addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+  // ===== Init =====
+  load(); renderCoins(); renderHotbar(); rebuildAll();
+  applySettings(); updateOrbitCamera(); resizeCanvas();
+  updateExplorer(); updateStatus(null, countBlocks(), "Select");
+  frame();
 </script>
 </body>
 </html>

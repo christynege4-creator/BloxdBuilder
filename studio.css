@@ -1,0 +1,163 @@
+/* ===== Roblox Studio–inspired layout ===== */
+body.studio-page {
+  overflow: hidden;
+  background: #252525;
+  color: #e0e0e0;
+}
+.studio { position: fixed; inset: 0; display: flex; flex-direction: column; z-index: 20; }
+
+/* ---- Ribbon tab bar ---- */
+.studio-ribbon {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #2d2d2d; border-bottom: 1px solid #1a1a1a; height: 34px; flex-shrink: 0;
+}
+.studio-ribbon-tabs { display: flex; height: 100%; }
+.ribbon-tab {
+  padding: 0 16px; border: 0; background: transparent; color: #a0a0a0;
+  font: 12px inherit; cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+.ribbon-tab:hover { color: #e0e0e0; }
+.ribbon-tab.active { color: #fff; border-bottom-color: #00a2ff; }
+.studio-ribbon-actions { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
+.ribbon-btn {
+  padding: 4px 12px; border: 1px solid #404040; border-radius: 4px;
+  background: #3c3c3c; color: #e0e0e0; font: 12px inherit; cursor: pointer;
+  text-decoration: none; transition: background 100ms;
+}
+.ribbon-btn:hover { background: #484848; }
+.ribbon-btn.primary { background: #00a2ff; border-color: #00a2ff; color: #fff; font-weight: 600; }
+.ribbon-btn.primary:hover { background: #0090e0; }
+
+/* ---- Ribbon tool bar ---- */
+.studio-ribbon-tools {
+  display: flex; align-items: center; background: #252525;
+  border-bottom: 1px solid #1a1a1a; padding: 5px 8px; flex-shrink: 0; min-height: 38px;
+}
+.ribbon-group { display: flex; align-items: center; gap: 3px; padding: 0 8px; border-right: 1px solid #1a1a1a; }
+.ribbon-group:last-child { border-right: 0; }
+.ribbon-group-label { font-size: 9px; color: #707070; text-transform: uppercase; letter-spacing: .5px; margin-right: 4px; white-space: nowrap; }
+.ribbon-group-items { display: flex; gap: 3px; flex-wrap: wrap; }
+.studio-tool {
+  display: flex; align-items: center; gap: 4px; padding: 5px 9px;
+  border: 1px solid #404040; border-radius: 4px; background: #3c3c3c;
+  color: #c0c0c0; font: 11px inherit; cursor: pointer; white-space: nowrap;
+  transition: background 80ms, border-color 80ms, color 80ms;
+}
+.studio-tool:hover { background: #484848; color: #e0e0e0; }
+.studio-tool.active { background: #00a2ff; border-color: #00a2ff; color: #fff; }
+
+/* ---- Main body ---- */
+.studio-body { flex: 1; display: flex; min-height: 0; }
+
+/* ---- Viewport ---- */
+.studio-viewport { flex: 1; position: relative; background: #1a1a1a; min-width: 0; overflow: hidden; }
+.studio-viewport canvas { display: block; width: 100%; height: 100%; }
+
+/* ---- Hotbar ---- */
+.studio-hotbar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 5; }
+.studio-hotbar .slot {
+  width: 44px; height: 44px; background: rgba(45,45,45,.85);
+  border: 2px solid rgba(255,255,255,.12); border-radius: 6px;
+  position: relative; padding: 3px; cursor: pointer;
+}
+.studio-hotbar .slot:hover { border-color: rgba(255,255,255,.3); }
+.studio-hotbar .slot.active { border-color: #00a2ff; box-shadow: 0 0 8px rgba(0,162,255,.4); }
+.studio-hotbar .slot img { width: 100%; height: 100%; image-rendering: pixelated; display: block; border-radius: 3px; }
+.studio-hotbar .slot .num { position: absolute; top: 1px; left: 3px; font-size: 9px; color: #a0a0a0; }
+.studio-hotbar .slot .empty { display: grid; place-items: center; width: 100%; height: 100%; color: #606060; font-size: 14px; }
+
+/* ---- Coins ---- */
+.studio-coins {
+  position: absolute; top: 10px; left: 10px; padding: 4px 10px;
+  background: rgba(45,45,45,.85); border: 1px solid #404040; border-radius: 5px; font-size: 12px; z-index: 5;
+}
+
+/* ---- Right panels ---- */
+.studio-right { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; background: #2d2d2d; border-left: 1px solid #1a1a1a; }
+.studio-panel-header { display: flex; align-items: center; padding: 7px 10px; background: #333; border-bottom: 1px solid #1a1a1a; }
+.studio-panel-header h3 { font-size: 11px; font-weight: 600; color: #b0b0b0; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ---- Explorer ---- */
+.studio-explorer { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.explorer-tree { flex: 1; overflow-y: auto; padding: 4px 0; }
+.explorer-node { display: flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: 12px; color: #c0c0c0; cursor: pointer; user-select: none; white-space: nowrap; }
+.explorer-node:hover { background: #383838; }
+.explorer-node.selected { background: rgba(0,162,255,.2); color: #fff; }
+.explorer-node-icon { font-size: 13px; width: 16px; text-align: center; flex-shrink: 0; }
+.explorer-node-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.explorer-node-count { color: #707070; font-size: 10px; flex-shrink: 0; }
+.explorer-children { margin-left: 14px; }
+
+/* ---- Properties ---- */
+.studio-properties { flex: 0 0 auto; max-height: 45%; display: flex; flex-direction: column; border-top: 2px solid #1a1a1a; }
+.prop-content { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.prop-empty { color: #707070; font-size: 11px; text-align: center; padding: 16px 0; }
+.prop-section { margin-bottom: 10px; }
+.prop-section-title { font-size: 10px; font-weight: 600; color: #909090; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #383838; }
+.prop-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 0; }
+.prop-label { font-size: 11px; color: #a0a0a0; flex-shrink: 0; }
+.prop-value { font-size: 11px; color: #e0e0e0; font-weight: 500; }
+.prop-input { width: 60px; padding: 2px 5px; border: 1px solid #404040; border-radius: 3px; background: #1e1e1e; color: #e0e0e0; font: 11px inherit; }
+.prop-input:focus { outline: none; border-color: #00a2ff; }
+.prop-input.select { width: 90px; cursor: pointer; }
+
+/* ---- Status bar ---- */
+.studio-statusbar { display: flex; align-items: center; gap: 16px; padding: 3px 12px; background: #0079c1; color: #fff; font-size: 11px; flex-shrink: 0; }
+.studio-statusbar span { white-space: nowrap; }
+
+/* ---- Play overlay ---- */
+.play-overlay { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.7); cursor: pointer; text-align: center; }
+.play-overlay.hidden { display: none; }
+.play-overlay h2 { font-size: 28px; color: #fff; }
+.play-overlay .muted { color: #a0a0a0; font-size: 14px; }
+.play-overlay .controls { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 10px; color: #a0a0a0; font-size: 12px; }
+
+/* ---- Modals ---- */
+.studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 99; }
+.studio-modal-overlay.hidden { display: none; }
+.studio-modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: #2d2d2d; border: 1px solid #404040; border-radius: 10px; padding: 16px;
+  z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,.5); max-width: 90vw; max-height: 80vh;
+  overflow-y: auto; min-width: 320px;
+}
+.studio-modal.hidden { display: none; }
+.studio-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #383838; }
+.studio-modal-header h3 { font-size: 14px; color: #e0e0e0; }
+.studio-modal-close { background: transparent; border: 0; color: #a0a0a0; font-size: 18px; cursor: pointer; padding: 0 4px; }
+.studio-modal-close:hover { color: #e0e0e0; }
+.studio-modal .muted { color: #707070; }
+.studio-modal .small { font-size: 11px; }
+
+/* ---- Inventory ---- */
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; max-width: 400px; }
+.inv-item { width: 56px; height: 56px; border: 1px solid #404040; border-radius: 6px; background: #1e1e1e; display: grid; place-items: center; cursor: pointer; position: relative; padding: 4px; }
+.inv-item:hover { border-color: #606060; }
+.inv-item.locked { opacity: .5; }
+.inv-item img { width: 100%; height: 100%; image-rendering: pixelated; }
+.inv-item .lock { position: absolute; bottom: 2px; right: 2px; font-size: 9px; color: #ffd700; }
+
+/* ---- Shop ---- */
+.shop-list { max-width: 380px; }
+.shop-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #383838; }
+.shop-row img { width: 28px; height: 28px; image-rendering: pixelated; }
+.shop-name { flex: 1; font-size: 12px; color: #e0e0e0; }
+.shop-price { font-size: 11px; color: #a0a0a0; }
+.buy-btn { padding: 4px 10px; font-size: 11px; }
+.coins-line { font-size: 12px; color: #a0a0a0; margin-bottom: 10px; }
+
+/* ---- Script modal ---- */
+.studio-modal textarea { width: 100%; height: 200px; background: #1a1a1a; border: 1px solid #404040; border-radius: 6px; color: #e0e0e0; padding: 10px; font: 12px/1.5 ui-monospace, "Cascadia Code", Menlo, monospace; resize: vertical; }
+.studio-modal .io-row { display: flex; gap: 6px; margin-top: 8px; }
+.studio-modal .code-output { width: 100%; min-height: 60px; max-height: 120px; overflow: auto; margin-top: 8px; padding: 8px; background: #1a1a1a; border: 1px solid #404040; border-radius: 6px; font: 11px ui-monospace, monospace; color: #9ff0b0; white-space: pre-wrap; }
+
+/* ---- Settings modal ---- */
+.studio-modal label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: #c0c0c0; margin-bottom: 8px; }
+.studio-modal select, .studio-modal input[type="range"] { flex: 1; max-width: 150px; accent-color: #00a2ff; }
+.studio-modal select { padding: 3px 6px; border: 1px solid #404040; border-radius: 4px; background: #1e1e1e; color: #e0e0e0; font: 12px inherit; }
+.studio-modal .settings-io textarea { width: 100%; height: 70px; background: #1a1a1a; border: 1px solid #404040; border-radius: 6px; color: #e0e0e0; padding: 8px; font: 11px ui-monospace, monospace; resize: vertical; }
+
+/* ---- Responsive ---- */
+@media (max-width: 800px) { .studio-right { width: 200px; } .ribbon-group-label { display: none; } }
+@media (max-width: 600px) { .studio-right { display: none; } .studio-ribbon-tools { flex-wrap: wrap; } }
