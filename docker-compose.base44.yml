@@ -1,0 +1,20 @@
+services:
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    # Plain runtime, source bind-mounted, zero dependencies to install.
+    # --watch restarts on source edits; pages are read from disk per request.
+    command: ["node", "--watch", "--experimental-strip-types", "index.ts"]
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s

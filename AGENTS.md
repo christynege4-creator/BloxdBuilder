@@ -14,6 +14,12 @@ The HTML pages share one stylesheet; `index.ts` is the only server code.
   There is no database and no external service — no secrets required.
 - Server reads files from disk per request with `Cache-Control: no-store`, so HTML/CSS edits show on
   refresh; `index.ts` edits trigger a restart via `node --watch`.
+- The platform start command is `docker compose -f docker-compose.base44.yml up -d`, so that file must
+  exist. `docker-compose.bloxdbuilder.yml` is the same config under another name — keep both in sync;
+  renaming/removing `docker-compose.base44.yml` makes the app fail to start ("compose file ... no such
+  file or directory").
+- `textures/*.png` are the 8 x 8 block textures read by `world-builder.html`. Without them the page logs
+  "Failed to load img textures/*.png" and renders untextured blocks.
 
 ## Verify
 ```
