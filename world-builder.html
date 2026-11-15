@@ -4,19 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>World Builder — BloxdBuilder</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
-  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="BloxdBuilderLogo.png">
+  <script src="theme.js"></script>
 </head>
 <body class="game-page">
   <div class="game">
     <canvas id="scene" role="img" aria-label="Interactive 3D world preview">Interactive 3D world preview</canvas>
     <div class="hud">
       <div class="topbar">
-        <a class="top-link" href="/index.html" id="leave-builder">← Leave builder</a>
+        <a class="top-link" href="index.html" id="leave-builder">← Leave builder</a>
         <span class="top-title">World Builder</span>
         <div class="top-actions">
-          <a class="top-link" href="/workshop.html">Workshop</a>
+          <a class="top-link" href="workshop.html">Workshop</a>
           <button class="icon-btn" id="shop-btn" type="button" title="Shop (B)" aria-label="Shop">🛒</button>
           <button class="icon-btn" id="settings-btn" type="button" title="Settings" aria-label="Settings">⚙</button>
         </div>
@@ -30,7 +30,7 @@
       <div class="play-overlay" id="overlay">
         <h2>⛏ World Builder</h2>
         <p class="muted">Click to play</p>
-        <a class="btn btn-ghost overlay-leave" href="/index.html">← Exit to Home</a>
+        <a class="btn btn-ghost overlay-leave" href="index.html">← Exit to Home</a>
         <div class="controls">
           <span><b>WASD</b> move</span>
           <span><b>Space / Shift</b> up / down</span>
@@ -96,7 +96,7 @@
   </div>
 
 <script type="module">
-  import * as THREE from "/vendor/three.module.min.js";
+  import * as THREE from "./vendor/three.module.min.js";
 
   // ---------- World data ----------
   const SX = 24, SY = 16, SZ = 24;
@@ -254,7 +254,7 @@
 
   // Textures (Bloxd default pack, 8×8 pixel art)
   const loader = new THREE.TextureLoader();
-  loader.setPath("/textures/");
+  loader.setPath("textures/");
   const texCache = {};
   function tex(name) {
     if (!texCache[name]) {
@@ -430,7 +430,7 @@
       slot.className = "slot" + (i === selected ? " active" : "");
       slot.title = block ? block.label : "Empty";
       slot.innerHTML = `<span class="num">${i + 1}</span>` +
-        (block ? `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` : `<span class="empty">—</span>`);
+        (block ? `<img src="textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` : `<span class="empty">—</span>`);
       slot.addEventListener("click", () => { selectSlot(i); slot.blur(); });
       hotbar.appendChild(slot);
     });
@@ -450,7 +450,7 @@
       const item = document.createElement("button");
       item.className = "inv-item" + (owned ? "" : " locked");
       item.title = block.label;
-      item.innerHTML = `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` +
+      item.innerHTML = `<img src="textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">` +
         (owned ? "" : `<span class="lock">🔒${block.price}</span>`);
       item.addEventListener("click", () => {
         if (!owned) { togglePanel(document.getElementById("shop-panel")); return; }
@@ -471,7 +471,7 @@
       const owned = unlocked.has(block.name);
       const row = document.createElement("div");
       row.className = "shop-row";
-      row.innerHTML = `<img src="/textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">
+      row.innerHTML = `<img src="textures/${block.faces.side ?? block.faces.all}.png" alt="${block.label}">
         <span class="shop-name">${block.label}</span>
         <span class="shop-price">${owned ? "Owned" : `🪙 ${block.price}`}</span>`;
       const btn = document.createElement("button");

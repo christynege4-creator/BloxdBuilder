@@ -30,7 +30,12 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
     let pathname = decodeURIComponent(url.pathname);
-    if (pathname.length > 1 && pathname.endsWith("/")) pathname = pathname.slice(0, -1);
+    if (pathname.length > 1 && pathname.endsWith("/")) {
+      // Redirect so relative asset URLs resolve against the canonical page path.
+      res.writeHead(308, { Location: pathname.replace(/\/+$/, "") + url.search });
+      res.end();
+      return;
+    }
 
     const clean = normalize(pathname).replace(/^([.][.][/\\])+/, "");
     const filePath = join(ROOT, HTML_ROUTES.get(pathname) ?? clean);

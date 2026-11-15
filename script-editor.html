@@ -4,19 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Script Editor — BloxdBuilder</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
-  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="BloxdBuilderLogo.png">
+  <script src="theme.js"></script>
 </head>
 <body>
   <nav class="nav">
-    <a class="brand" href="/index.html"><img src="/BloxdBuilderLogo.png" alt=""><span>BloxdBuilder</span></a>
-    <a class="link" href="/index.html"><span class="nav-icon">⌂</span>Home</a>
-    <a class="link" href="/world-builder.html"><span class="nav-icon">▦</span>World Builder</a>
-    <a class="link active" href="/script-editor.html" aria-current="page"><span class="nav-icon">⌘</span>Script Editor</a>
-    <a class="link" href="/chat.html"><span class="nav-icon">◌</span>Chat</a>
-    <a class="link" href="/workshop.html"><span class="nav-icon">◇</span>Workshop</a>
-    <a class="link" href="/index.html#settings"><span class="nav-icon">⚙</span>Settings</a>
+    <a class="brand" href="index.html"><img src="BloxdBuilderLogo.png" alt=""><span>BloxdBuilder</span></a>
+    <a class="link" href="index.html"><span class="nav-icon">⌂</span>Home</a>
+    <a class="link" href="world-builder.html"><span class="nav-icon">▦</span>World Builder</a>
+    <a class="link active" href="script-editor.html" aria-current="page"><span class="nav-icon">⌘</span>Script Editor</a>
+    <a class="link" href="chat.html"><span class="nav-icon">◌</span>Chat</a>
+    <a class="link" href="workshop.html"><span class="nav-icon">◇</span>Workshop</a>
+    <a class="link" href="index.html#settings"><span class="nav-icon">⚙</span>Settings</a>
   </nav>
 
   <main class="container script-studio">
@@ -289,7 +289,7 @@ console.log("Built a gold platform!");
   async function loadGameApiDeclarations() {
     const apiStatus = document.getElementById("api-status");
     try {
-      const response = await fetch("/node_modules/@bloxd/index.d.ts");
+      const response = await fetch("node_modules/@bloxd/index.d.ts");
       if (!response.ok) throw new Error(`Could not load @bloxd/index.d.ts (HTTP ${response.status}).`);
       const declarations = parseGameApiDeclarations(await response.text());
       for (const method of declarations.methods) gameApiMethodNames.add(method.label);

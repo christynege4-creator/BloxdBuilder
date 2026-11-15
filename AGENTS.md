@@ -20,6 +20,13 @@ The HTML pages share one stylesheet; `index.ts` is the only server code.
   file or directory").
 - `textures/*.png` are the 8 x 8 block textures read by `world-builder.html`. Without them the page logs
   "Failed to load img textures/*.png" and renders untextured blocks.
+- The same files are published on GitHub Pages from `main` at `https://christynege4-creator.github.io/BloxdBuilder/`
+  (Pages "legacy" branch build, so every push to `main` redeploys; no Actions workflow needed). Because that
+  site lives under the `/BloxdBuilder/` subpath, every asset and link must stay **relative**
+  (`style.css`, `world-builder.html`, `textures/x.png`) — a root-absolute `/style.css` 404s there. In JS,
+  `fetch()`/`TextureLoader` paths are relative too, and a module import needs the `./` prefix
+  (`from "./vendor/three.module.min.js"`); `from "vendor/..."` is a bare specifier and fails to resolve.
+  Pages already serves `vendor/` and `node_modules/`, so no `.nojekyll` is required.
 
 ## Verify
 ```
