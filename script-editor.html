@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Script Editor — BloxdBuilder</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" type="image/png" href="/BloxdBuilderLogo.png">
+  <script src="/theme.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="/index.html"><img src="/BloxdBuilderLogo.png" alt=""><span>BloxdBuilder</span></a>
+    <a class="link" href="/index.html"><span class="nav-icon">⌂</span>Home</a>
+    <a class="link" href="/world-builder.html"><span class="nav-icon">▦</span>World Builder</a>
+    <a class="link active" href="/script-editor.html" aria-current="page"><span class="nav-icon">⌘</span>Script Editor</a>
+    <a class="link" href="/chat.html"><span class="nav-icon">◌</span>Chat</a>
+    <a class="link" href="/workshop.html"><span class="nav-icon">◇</span>Workshop</a>
+    <a class="link" href="/index.html#settings"><span class="nav-icon">⚙</span>Settings</a>
+  </nav>
+
+  <main class="container script-studio">
+    <header class="script-topbar">
+      <div>
+        <span class="eyebrow">BLOXDBUILDER STUDIO</span>
+        <h1>⌘ Script Editor</h1>
+        <p class="muted">Build JavaScript for your BloxdBuilder worlds.</p>
+      </div>
+      <div class="script-top-actions">
+        <button class="btn btn-ghost" id="copy-btn" type="button">Copy code</button>
+        <button class="btn btn-ghost" id="download-btn" type="button">Download .js</button>
+        <button class="btn btn-primary" id="assistant-toggle" type="button" aria-expanded="true" aria-controls="assistant-panel">✦ AI Assistant</button>
+      </div>
+    </header>
+
+    <div class="script-workspace">
+      <section class="panel editor-panel" aria-label="Code editor">
+        <div class="editor-toolbar">
+          <div class="editor-file"><span class="editor-file-dot"></span><span id="script-file-name">script.js</span></div>
+          <div class="editor-toolbar-actions">
+            <button class="btn btn-primary" id="run-btn" type="button">▶ Run</button>
+            <button class="btn btn-ghost" id="save-btn" type="button">Save</button>
+            <button class="btn btn-ghost" id="clear-btn" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="editor-shell">
+          <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
+            aria-label="JavaScript editor" aria-autocomplete="list" aria-controls="editor-suggestions"></textarea>
+          <div id="editor-suggestions" class="editor-suggestions" role="listbox" aria-label="Code suggestions" hidden></div>
+        </div>
+        <div class="editor-statusbar">
+          <span id="save-state" aria-live="polite">JavaScript · Local file</span>
+          <span id="api-status" aria-live="polite">Loading Bloxd GameApi…</span>
+        </div>
+        <section class="script-output" aria-label="Script output">
+          <div class="output-head">⌄ &nbsp;Console output</div>
+          <pre class="output" id="output">// Run your script to see output here.</pre>
+        </section>
+      </section>
+
+      <aside class="assistant-panel" id="assistant-panel" aria-label="AI Assistant">
+        <header class="assistant-header">
+          <div class="assistant-title">
+            <span class="assistant-avatar" aria-hidden="true">✦</span>
+            <div><h2>AI Assistant</h2><span class="assistant-mode"><span></span> Local assistant</span></div>
+          </div>
+          <div class="assistant-header-actions">
+            <button class="assistant-icon-button" id="assistant-new-chat" type="button" aria-label="New chat" title="New chat">＋</button>
+            <button class="assistant-icon-button" id="assistant-close" type="button" aria-label="Close assistant" title="Close assistant">×</button>
+          </div>
+        </header>
+        <div class="assistant-conversation" id="assistant-conversation" role="log" aria-live="polite" aria-relevant="additions">
+          <div class="assistant-welcome" id="assistant-welcome">
+            <span class="assistant-welcome-icon" aria-hidden="true">✦</span>
+            <h3>What are we building?</h3>
+            <p>Ask for a script, an explanation, or a quick code check. The assistant can use the code in your editor as context.</p>
+            <div class="assistant-prompts">
+              <button type="button" data-prompt="Create a small stone platform in the center of my world">Create a stone platform</button>
+              <button type="button" data-prompt="Explain the code currently in my editor">Explain my code</button>
+              <button type="button" data-prompt="Check the code currently in my editor for errors">Check my code</button>
+            </div>
+          </div>
+        </div>
+        <form class="assistant-composer" id="assistant-form">
+          <label class="visually-hidden" for="assistant-input">Ask the assistant</label>
+          <textarea id="assistant-input" rows="2" maxlength="600" placeholder="Ask a question or describe a script..." required></textarea>
+          <div class="assistant-composer-footer">
+            <span id="assistant-context">Editor code is available as context</span>
+            <button class="assistant-send" id="assistant-send" type="submit" aria-label="Send message" title="Send message">↑</button>
+          </div>
+        </form>
+        <p class="assistant-disclaimer">Local helper · Your code stays in this browser. Review scripts before running.</p>
+      </aside>
+    </div>
+  </main>
+
+<script>
+  const STORE_KEY = "bloxd.script";
+  const WORLD_KEY = "bloxd.world3d";
+  const editor = document.getElementById("editor");
+  const suggestionBox = document.getElementById("editor-suggestions");
+  const output = document.getElementById("output");
+  const saveState = document.getElementById("save-state");
+  const assistantPanel = document.getElementById("assistant-panel");
+  const assistantConversation = document.getElementById("assistant-conversation");
+  const assistantInput = document.getElementById("assistant-input");
+
+  const SAMPLE = `// BloxdBuilder script — runs in your browser.
+// Read or edit blocks with api.getBlock / api.setBlock.
+const [width, height, depth] = api.size;
+console.log("World size:", width, "x", height, "x", depth);
+
+const platformY = Math.min(height - 1, 8);
+for (let x = 10; x < 14; x++) {
+  for (let z = 10; z < 14; z++) {
+    api.setBlock(x, platformY, z, "gold");
+  }
+}
+console.log("Built a gold platform!");
+`;
+
+  editor.value = localStorage.getItem(STORE_KEY) ?? SAMPLE;
+
+  const completions = [
+    { label: "const", detail: "Declare a block-scoped constant", kind: "Keyword" },
+    { label: "let", detail: "Declare a block-scoped variable", kind: "Keyword" },
+    { label: "function", detail: "Declare a function", kind: "Keyword" },
+    { label: "if", detail: "Create a conditional block", kind: "Keyword" },
+    { label: "else", detail: "Alternative conditional branch", kind: "Keyword" },
+    { label: "for", detail: "Create a for loop", kind: "Keyword" },
+    { label: "for...of", detail: "Iterate over an iterable", insertText: "for (const ${1:item} of ${2:items}) {\n  $0\n}", kind: "Snippet" },
+    { label: "while", detail: "Create a while loop", kind: "Keyword" },
+    { label: "return", detail: "Return a value from a function", kind: "Keyword" },
+    { label: "try", detail: "Handle errors with try/catch", insertText: "try {\n  $0\n} catch (${1:error}) {\n  console.error(error);\n}", kind: "Snippet" },
+    { label: "console", detail: "Write messages to the console", kind: "Object" },
+    { label: "localStorage", detail: "Read and write browser storage", kind: "Object" },
+    { label: "api", detail: "Read and edit the current 3D world", kind: "Object" },
+    { label: "api.size", detail: "Get the world dimensions [width, height, depth]", kind: "Property" },
+    { label: "api.blocks", detail: "List available block names", kind: "Property" },
+    { label: "JSON", detail: "Parse and serialize JSON", kind: "Object" },
+    { label: "Object", detail: "JavaScript object utilities", kind: "Object" },
+    { label: "Array", detail: "JavaScript array utilities", kind: "Object" },
+    { label: "Math", detail: "Math functions and constants", kind: "Object" },
+    { label: "Date", detail: "Work with dates and times", kind: "Object" },
+    { label: "setTimeout", detail: "Run a function after a delay", kind: "Function" },
+    { label: "setInterval", detail: "Run a function repeatedly", kind: "Function" },
+    { label: "parseInt", detail: "Parse a string as an integer", kind: "Function" },
+    { label: "parseFloat", detail: "Parse a string as a number", kind: "Function" },
+    { label: "Number", detail: "Convert a value to a number", kind: "Function" },
+    { label: "String", detail: "Convert a value to a string", kind: "Function" },
+    { label: "Boolean", detail: "Convert a value to a boolean", kind: "Function" },
+    { label: "console.log", detail: "Print a message", insertText: "console.log()", kind: "Method" },
+    { label: "console.warn", detail: "Print a warning", insertText: "console.warn()", kind: "Method" },
+    { label: "console.error", detail: "Print an error", insertText: "console.error()", kind: "Method" },
+    { label: "localStorage.getItem", detail: "Read a saved value", insertText: 'localStorage.getItem("")', kind: "Method" },
+    { label: "localStorage.setItem", detail: "Save a value", insertText: 'localStorage.setItem("", "")', kind: "Method" },
+    { label: "localStorage.removeItem", detail: "Remove a saved value", insertText: 'localStorage.removeItem("")', kind: "Method" },
+    { label: "JSON.parse", detail: "Parse a JSON string", insertText: "JSON.parse()", kind: "Method" },
+    { label: "JSON.stringify", detail: "Convert a value to JSON", insertText: "JSON.stringify()", kind: "Method" },
+    { label: "Object.keys", detail: "Get an object's keys", insertText: "Object.keys()", kind: "Method" },
+    { label: "Array.from", detail: "Create an array from an iterable", insertText: "Array.from()", kind: "Method" },
+    { label: "Math.random", detail: "Get a random number", insertText: "Math.random()", kind: "Method" },
+    { label: "Math.floor", detail: "Round down to an integer", insertText: "Math.floor()", kind: "Method" },
+    { label: "Math.round", detail: "Round to the nearest integer", insertText: "Math.round()", kind: "Method" }
+  ];
+  const gameApiMethodNames = new Set(["getBlock", "setBlock"]);
+  const gameApiPropertyNames = new Set(["size", "blocks"]);
+  const apiCompletions = completions.filter(item => item.label.startsWith("api.")).map(item => ({
+    ...item,
+    label: item.label.slice(4),
+    insertText: item.insertText ? item.insertText.replace(/^api\./, "") : item.label.slice(4)
+  }));
+  const memberCompletions = {
+    console: completions.filter(item => item.label.startsWith("console.")).map(item => ({ ...item, label: item.label.slice(8), insertText: item.label.slice(8) })),
+    localStorage: completions.filter(item => item.label.startsWith("localStorage.")).map(item => ({ ...item, label: item.label.slice(13), insertText: item.label.slice(13) })),
+    JSON: completions.filter(item => item.label.startsWith("JSON.")).map(item => ({ ...item, label: item.label.slice(5), insertText: item.label.slice(5) })),
+    Object: completions.filter(item => item.label.startsWith("Object.")).map(item => ({ ...item, label: item.label.slice(7), insertText: item.label.slice(7) })),
+    Array: completions.filter(item => item.label.startsWith("Array.")).map(item => ({ ...item, label: item.label.slice(6), insertText: item.label.slice(6) })),
+    Math: completions.filter(item => item.label.startsWith("Math.")).map(item => ({ ...item, label: item.label.slice(5), insertText: item.label.slice(5) })),
+    api: apiCompletions
+  };
+
+  function splitTypeParameters(parameters) {
+    const parts = [];
+    let start = 0;
+    let round = 0, square = 0, curly = 0, angle = 0;
+    let quote = "";
+    for (let index = 0; index < parameters.length; index++) {
+      const character = parameters[index];
+      if (quote) {
+        if (character === "\\") index++;
+        else if (character === quote) quote = "";
+        continue;
+      }
+      if (character === '"' || character === "'" || character === "`") { quote = character; continue; }
+      if (character === "(") round++;
+      else if (character === ")") round--;
+      else if (character === "[") square++;
+      else if (character === "]") square--;
+      else if (character === "{") curly++;
+      else if (character === "}") curly--;
+      else if (character === "<") angle++;
+      else if (character === ">" && angle > 0) angle--;
+      else if (character === "," && round === 0 && square === 0 && curly === 0 && angle === 0) {
+        parts.push(parameters.slice(start, index).trim());
+        start = index + 1;
+      }
+    }
+    if (parameters.slice(start).trim()) parts.push(parameters.slice(start).trim());
+    return parts;
+  }
+
+  function findParameterEnd(source, openingIndex) {
+    let depth = 0;
+    let quote = "";
+    for (let index = openingIndex; index < source.length; index++) {
+      const character = source[index];
+      if (quote) {
+        if (character === "\\") index++;
+        else if (character === quote) quote = "";
+        continue;
+      }
+      if (character === '"' || character === "'" || character === "`") { quote = character; continue; }
+      if (character === "(") depth++;
+      else if (character === ")" && --depth === 0) return index;
+    }
+    throw new Error("An API method has an incomplete parameter list.");
+  }
+
+  function readDeclarationComment(source, position) {
+    const comment = source.slice(0, position).match(/\/\*\*([\s\S]*?)\*\/\s*$/)?.[1] || "";
+    return comment.split(/\r?\n/)
+      .map(line => line.replace(/^\s*\*\s?/, "").trim())
+      .filter(line => line && !line.startsWith("@"))
+      .join(" ");
+  }
+
+  function parseGameApiDeclarations(source) {
+    const interfaceStart = source.indexOf("export interface GameApi {");
+    if (interfaceStart < 0) throw new Error("The @bloxd declarations do not contain GameApi.");
+    const nextInterface = source.indexOf("\nexport interface ", interfaceStart + 1);
+    const apiSource = source.slice(interfaceStart, nextInterface < 0 ? source.length : nextInterface);
+    const methodPattern = /^([A-Za-z_$][\w$]*)(?:<[^>\n]+>)?\s*\(/gm;
+    const methods = [];
+    let firstMethodIndex = -1;
+    for (const match of apiSource.matchAll(methodPattern)) {
+      if (firstMethodIndex < 0) firstMethodIndex = match.index;
+      const methodName = match[1];
+      const openingIndex = match.index + match[0].lastIndexOf("(");
+      const closingIndex = findParameterEnd(apiSource, openingIndex);
+      const rawParameters = apiSource.slice(openingIndex + 1, closingIndex);
+      const parameters = splitTypeParameters(rawParameters);
+      const signatureLineEnd = apiSource.indexOf("\n", closingIndex);
+      const returnType = signatureLineEnd < 0
+        ? ""
+        : apiSource.slice(closingIndex + 1, signatureLineEnd).trim().replace(/^:\s*/, "");
+      const argumentsForSnippet = parameters.flatMap((parameter, index) => {
+        if (/^(?:\.\.\.)?[A-Za-z_$][\w$]*\?\s*:/.test(parameter) || /\s=\s/.test(parameter)) return [];
+        if (parameter.startsWith("{")) return ["{}"];
+        const name = parameter.match(/^\.\.\.?\s*([A-Za-z_$][\w$]*)/)?.[1] || `arg${index + 1}`;
+        return [`\${${index + 1}:${name}}`];
+      });
+      const documentation = readDeclarationComment(apiSource, match.index);
+      methods.push({
+        label: methodName,
+        detail: documentation || "Bloxd GameApi method.",
+        documentation: documentation || "Official Bloxd GameApi method.",
+        signature: `${methodName}(${rawParameters.replace(/\s+/g, " ").trim()})${returnType ? `: ${returnType}` : ""}`,
+        insertText: `${methodName}(${argumentsForSnippet.join(", ")})`,
+        kind: "Method"
+      });
+    }
+    if (!methods.length || firstMethodIndex < 0) {
+      throw new Error("No GameApi methods were found in @bloxd/index.d.ts.");
+    }
+
+    const properties = [...apiSource.slice(0, firstMethodIndex).matchAll(/^[\t ]+([A-Za-z_$][\w$]*)\??:\s*([^\r\n;]+);?$/gm)]
+      .map(match => ({
+        label: match[1],
+        detail: readDeclarationComment(apiSource.slice(0, firstMethodIndex), match.index) || "Bloxd GameApi property.",
+        documentation: readDeclarationComment(apiSource.slice(0, firstMethodIndex), match.index) || "Official Bloxd GameApi property.",
+        signature: `: ${match[2].trim()}`,
+        insertText: match[1],
+        kind: "Property"
+      }));
+    return { methods, properties };
+  }
+
+  async function loadGameApiDeclarations() {
+    const apiStatus = document.getElementById("api-status");
+    try {
+      const response = await fetch("/node_modules/@bloxd/index.d.ts");
+      if (!response.ok) throw new Error(`Could not load @bloxd/index.d.ts (HTTP ${response.status}).`);
+      const declarations = parseGameApiDeclarations(await response.text());
+      for (const method of declarations.methods) gameApiMethodNames.add(method.label);
+      for (const property of declarations.properties) gameApiPropertyNames.add(property.label);
+      apiCompletions.push(...declarations.properties, ...declarations.methods);
+      completions.push(...declarations.properties.map(property => ({
+        label: property.label,
+        detail: property.detail,
+        kind: "Variable"
+      })));
+      apiStatus.textContent = `Bloxd GameApi · ${declarations.methods.length} methods`;
+      if (editor === document.activeElement) updateSuggestions(true);
+    } catch (error) {
+      apiStatus.textContent = "Bloxd GameApi typings unavailable";
+      apiStatus.title = error.message;
+      console.error("Bloxd GameApi autocomplete could not load its installed type definitions.", error);
+    }
+  }
+  let visibleCompletions = [];
+  let selectedCompletion = 0;
+  let completionRange = null;
+  let suppressNextSuggestionUpdate = false;
+  let snippetStops = [];
+  let snippetStopIndex = -1;
+
+  function getCompletionMatches(label, query) {
+    const lowerLabel = label.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const indices = [];
+    let cursor = 0;
+    for (const character of lowerQuery) {
+      const found = lowerLabel.indexOf(character, cursor);
+      if (found === -1) return null;
+      indices.push(found);
+      cursor = found + 1;
+    }
+
+    const contiguous = lowerLabel.includes(lowerQuery);
+    const startsWith = lowerLabel.startsWith(lowerQuery);
+    const score = startsWith ? 0 : contiguous ? 1 : 2;
+    return { indices, score };
+  }
+
+  function updateSuggestions(force = false) {
+    const caret = editor.selectionStart;
+    if (editor.selectionEnd !== caret) {
+      closeSuggestions();
+      return;
+    }
+
+    const beforeCaret = editor.value.slice(0, caret);
+    const match = beforeCaret.match(/[\w$]*(?:\.\.\.[\w$]*)?$/);
+    const prefix = match ? match[0] : "";
+    const start = caret - prefix.length;
+    const memberMatch = beforeCaret.slice(0, start).match(/([A-Za-z_$][\w$]*)\.$/);
+    const source = memberMatch
+      ? memberCompletions[memberMatch[1]] || []
+      : completions.filter(item => item.kind !== "Method");
+    const declaredNames = [...editor.value.matchAll(/\b(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/g)]
+      .map(([, name]) => ({ label: name, detail: "Declared in this script", kind: "Variable" }));
+    const candidates = memberMatch ? source : [...declaredNames, ...source];
+    visibleCompletions = candidates
+      .map(item => ({ ...item, match: getCompletionMatches(item.label, prefix) }))
+      .filter(item => item.match)
+      .sort((a, b) => a.match.score - b.match.score || a.label.localeCompare(b.label))
+      .slice(0, memberMatch?.[1] === "api" ? 300 : 10);
+
+    if (!visibleCompletions.length || (!force && prefix.length === 0 && !memberMatch)) {
+      closeSuggestions();
+      return;
+    }
+
+    completionRange = { start, end: caret };
+    selectedCompletion = Math.min(selectedCompletion, visibleCompletions.length - 1);
+    renderSuggestions();
+    positionSuggestions();
+  }
+
+  function renderSuggestions() {
+    suggestionBox.replaceChildren();
+    const list = document.createElement("div");
+    list.className = "editor-suggestion-list";
+    visibleCompletions.forEach((item, index) => {
+      const option = document.createElement("div");
+      option.className = "editor-suggestion" + (index === selectedCompletion ? " selected" : "");
+      option.id = `editor-suggestion-${index}`;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", index === selectedCompletion ? "true" : "false");
+
+      const icon = document.createElement("span");
+      icon.className = `suggestion-icon kind-${item.kind.toLowerCase()}`;
+      icon.setAttribute("aria-hidden", "true");
+      const name = document.createElement("span");
+      name.className = "suggestion-name";
+      let lastIndex = 0;
+      item.match.indices.forEach(matchIndex => {
+        if (matchIndex > lastIndex) name.append(document.createTextNode(item.label.slice(lastIndex, matchIndex)));
+        const highlighted = document.createElement("span");
+        highlighted.className = "suggestion-match";
+        highlighted.textContent = item.label[matchIndex];
+        name.append(highlighted);
+        lastIndex = matchIndex + 1;
+      });
+      name.append(document.createTextNode(item.label.slice(lastIndex)));
+      const kind = document.createElement("span");
+      kind.className = item.signature ? "suggestion-signature" : "suggestion-kind";
+      kind.textContent = item.signature || item.kind;
+      option.append(icon, name, kind);
+      option.addEventListener("mousedown", event => event.preventDefault());
+      option.addEventListener("mousemove", () => {
+        if (selectedCompletion !== index) {
+          selectedCompletion = index;
+          suggestionBox.querySelector(".editor-suggestion.selected")?.classList.remove("selected");
+          option.classList.add("selected");
+          suggestionBox.querySelectorAll(".editor-suggestion").forEach((row, rowIndex) => {
+            row.setAttribute("aria-selected", rowIndex === index ? "true" : "false");
+          });
+          renderSuggestionDetails(documentation, item);
+          editor.setAttribute("aria-activedescendant", `editor-suggestion-${index}`);
+        }
+      });
+      option.addEventListener("click", () => acceptCompletion(index));
+      list.append(option);
+    });
+
+    const documentation = document.createElement("aside");
+    documentation.className = "suggestion-doc";
+    renderSuggestionDetails(documentation, visibleCompletions[selectedCompletion]);
+    suggestionBox.append(list, documentation);
+    suggestionBox.hidden = false;
+    editor.setAttribute("aria-expanded", "true");
+    editor.setAttribute("aria-activedescendant", `editor-suggestion-${selectedCompletion}`);
+    suggestionBox.querySelector(".editor-suggestion.selected")?.scrollIntoView({ block: "nearest" });
+  }
+
+  function renderSuggestionDetails(container, item) {
+    container.replaceChildren();
+    const title = document.createElement("div");
+    title.className = "suggestion-doc-title";
+    title.textContent = item.label;
+    const signature = document.createElement("code");
+    signature.className = "suggestion-doc-signature";
+    signature.textContent = item.signature || item.kind;
+    const description = document.createElement("p");
+    description.className = "suggestion-doc-description";
+    description.textContent = item.documentation || item.detail;
+    container.append(title, signature, description);
+  }
+
+  function positionSuggestions() {
+    const mirror = document.createElement("div");
+    const marker = document.createElement("span");
+    const style = getComputedStyle(editor);
+    mirror.className = "editor-caret-mirror";
+    for (const property of ["font", "letterSpacing", "lineHeight", "padding", "border", "boxSizing", "textIndent", "textTransform", "whiteSpace", "wordBreak", "overflowWrap"]) {
+      mirror.style[property] = style[property];
+    }
+    mirror.style.width = `${editor.clientWidth}px`;
+    mirror.style.height = "auto";
+    mirror.style.visibility = "hidden";
+    mirror.textContent = editor.value.slice(0, editor.selectionStart);
+    marker.textContent = "\u200b";
+    mirror.append(marker);
+    editor.parentElement.append(mirror);
+
+    const left = Math.min(marker.offsetLeft, editor.clientWidth - suggestionBox.offsetWidth);
+    const caretTop = marker.offsetTop - editor.scrollTop + parseFloat(style.lineHeight);
+    const popupHeight = suggestionBox.offsetHeight;
+    const top = editor.clientHeight - caretTop >= popupHeight + 8
+      ? caretTop
+      : Math.max(0, caretTop - popupHeight);
+    suggestionBox.style.left = `${Math.max(0, left)}px`;
+    suggestionBox.style.top = `${Math.min(top, editor.clientHeight - popupHeight)}px`;
+    mirror.remove();
+  }
+
+  function closeSuggestions() {
+    suggestionBox.hidden = true;
+    editor.setAttribute("aria-expanded", "false");
+    editor.removeAttribute("aria-activedescendant");
+    completionRange = null;
+  }
+
+  function acceptCompletion(index = selectedCompletion) {
+    const item = visibleCompletions[index];
+    if (!item || !completionRange) return;
+    const rawText = item.insertText || item.label;
+    const stops = [];
+    const seenStops = new Set();
+    let expandedLength = 0;
+    let consumedUntil = 0;
+    const insertText = rawText.replace(/\$(?:\{(\d+)(?::([^}]*))?\}|(\d+))/g, (placeholder, bracedIndex, defaultText, plainIndex, offset) => {
+      const stop = Number(bracedIndex ?? plainIndex);
+      const text = defaultText ?? "";
+      expandedLength += rawText.slice(consumedUntil, offset).length;
+      if (!seenStops.has(stop)) {
+        stops.push({ index: stop, start: expandedLength, end: expandedLength + text.length });
+        seenStops.add(stop);
+      }
+      expandedLength += text.length;
+      consumedUntil = offset + placeholder.length;
+      return text;
+    });
+    const value = editor.value;
+    const { start, end } = completionRange;
+    editor.value = value.slice(0, start) + insertText + value.slice(end);
+    snippetStops = stops.filter(stop => stop.index !== 0)
+      .sort((a, b) => a.index - b.index)
+      .map(stop => ({ start: start + stop.start, end: start + stop.end }));
+    const finalStop = stops.find(stop => stop.index === 0);
+    if (finalStop) snippetStops.push({ start: start + finalStop.start, end: start + finalStop.end });
+    snippetStopIndex = snippetStops.length ? 0 : -1;
+    const firstStop = snippetStops[0];
+    const caret = firstStop ? firstStop.start : start + insertText.length;
+    editor.setSelectionRange(caret, firstStop ? firstStop.end : caret);
+    closeSuggestions();
+    saveState.textContent = "";
+    editor.focus();
+    suppressNextSuggestionUpdate = true;
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  editor.addEventListener("input", () => {
+    saveState.textContent = "";
+    if (suppressNextSuggestionUpdate) {
+      suppressNextSuggestionUpdate = false;
+      return;
+    }
+    snippetStops = [];
+    snippetStopIndex = -1;
+    selectedCompletion = 0;
+    updateSuggestions();
+  });
+
+  editor.addEventListener("click", () => updateSuggestions());
+  editor.addEventListener("keyup", event => {
+    if (!["ArrowUp", "ArrowDown", "Enter", "Tab", "Escape"].includes(event.key)) updateSuggestions();
+  });
+  editor.addEventListener("scroll", () => {
+    if (!suggestionBox.hidden) positionSuggestions();
+  });
+  editor.addEventListener("keydown", event => {
+    if ((event.ctrlKey || event.metaKey) && event.code === "Space") {
+      event.preventDefault();
+      updateSuggestions(true);
+      return;
+    }
+    if (suggestionBox.hidden) {
+      if (event.key === "Tab") {
+        if (snippetStopIndex >= 0 && snippetStopIndex < snippetStops.length) {
+          event.preventDefault();
+          const direction = event.shiftKey ? -1 : 1;
+          const next = snippetStopIndex + direction;
+          if (next < 0 || next >= snippetStops.length) {
+            const boundary = next < 0 ? snippetStops[0].start : snippetStops[snippetStops.length - 1].end;
+            editor.setSelectionRange(boundary, boundary);
+            snippetStopIndex = -1;
+            snippetStops = [];
+            return;
+          }
+          snippetStopIndex = next;
+          const stop = snippetStops[snippetStopIndex];
+          editor.setSelectionRange(stop.start, stop.end);
+          return;
+        }
+        event.preventDefault();
+        const start = editor.selectionStart;
+        editor.setRangeText("  ", start, editor.selectionEnd, "end");
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      selectedCompletion = (selectedCompletion + direction + visibleCompletions.length) % visibleCompletions.length;
+      renderSuggestions();
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      acceptCompletion();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeSuggestions();
+    } else if (event.key === " " && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+    }
+  });
+  editor.addEventListener("blur", () => setTimeout(closeSuggestions, 100));
+  loadGameApiDeclarations();
+
+  document.getElementById("save-btn").addEventListener("click", () => {
+    localStorage.setItem(STORE_KEY, editor.value);
+    saveState.textContent = "Saved ✓";
+  });
+
+  document.getElementById("clear-btn").addEventListener("click", () => {
+    if (confirm("Reset the script to the sample?")) {
+      editor.value = SAMPLE;
+      snippetStops = [];
+      snippetStopIndex = -1;
+      localStorage.removeItem(STORE_KEY);
+      saveState.textContent = "";
+    }
+  });
+
+  document.getElementById("run-btn").addEventListener("click", () => {
+    output.textContent = "";
+    const lines = [];
+    const log = (...args) => lines.push(args.map(String).join(" "));
+    const fakeConsole = { log, info: log, warn: log, error: log };
+    try {
+      const saved = JSON.parse(localStorage.getItem(WORLD_KEY) || "null");
+      const size = [24, 16, 24];
+      const hasSavedWorld = saved?.size?.join(",") === size.join(",")
+        && Array.isArray(saved.world)
+        && saved.world.length === size[0] * size[1] * size[2];
+      const palette = hasSavedWorld && Array.isArray(saved.palette)
+        ? [...saved.palette]
+        : [null, "grass", "dirt", "stone", "wood", "leaves", "water", "sand", "gold", "bedrock", "glass", "brick", "snow", "sandstone", "ice"];
+      const blocks = hasSavedWorld
+        ? [...saved.world]
+        : Array(size[0] * size[1] * size[2]).fill(0);
+      const inBounds = (x, y, z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z)
+        && x >= 0 && y >= 0 && z >= 0 && x < size[0] && y < size[1] && z < size[2];
+      const blockIndex = (x, y, z) => (y * size[2] + z) * size[0] + x;
+      const api = {
+        size,
+        blocks: palette.filter(Boolean),
+        getBlock(x, y, z) {
+          if (!inBounds(x, y, z)) return null;
+          return palette[blocks[blockIndex(x, y, z)]] || null;
+        },
+        setBlock(x, y, z, name) {
+          if (!inBounds(x, y, z)) {
+            log(`Coordinates out of bounds: ${x}, ${y}, ${z}`);
+            return false;
+          }
+          if (typeof name !== "string" || !name.trim()) {
+            log("Block name must be a non-empty string.");
+            return false;
+          }
+          let id = palette.indexOf(name);
+          if (id < 1) {
+            log(`Unknown block "${name}". Available blocks: ${palette.filter(Boolean).join(", ")}`);
+            return false;
+          }
+          blocks[blockIndex(x, y, z)] = id;
+          localStorage.setItem(WORLD_KEY, JSON.stringify({ size, palette, world: blocks }));
+          return true;
+        }
+      };
+      new Function("api", "console", editor.value)(api, fakeConsole);
+      lines.push("// finished without errors");
+    } catch (err) {
+      lines.push("ERROR: " + err.message);
+    }
+    output.textContent = lines.join("\n") || "(no output)";
+  });
+
+  const assistantToggle = document.getElementById("assistant-toggle");
+  function setAssistantOpen(open) {
+    assistantPanel.hidden = !open;
+    document.querySelector(".script-workspace").classList.toggle("assistant-hidden", !open);
+    assistantToggle.setAttribute("aria-expanded", String(open));
+    assistantToggle.textContent = open ? "✦ AI Assistant" : "✦ Open Assistant";
+  }
+  assistantToggle.addEventListener("click", () => setAssistantOpen(assistantPanel.hidden));
+  document.getElementById("assistant-close").addEventListener("click", () => setAssistantOpen(false));
+
+  document.getElementById("copy-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(editor.value);
+      saveState.textContent = "Code copied to clipboard.";
+    } catch {
+      saveState.textContent = "Clipboard access was blocked by this browser.";
+    }
+  });
+  document.getElementById("download-btn").addEventListener("click", () => {
+    const url = URL.createObjectURL(new Blob([editor.value], { type: "text/javascript;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "bloxd-script.js";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    saveState.textContent = "Script downloaded.";
+  });
+
+  const validBlocks = ["grass", "dirt", "stone", "wood", "leaves", "water", "sand", "gold", "bedrock", "glass", "brick", "snow", "sandstone", "ice"];
+  function makeCodeReply(request) {
+    const text = request.toLowerCase();
+    const block = validBlocks.find(name => new RegExp(`\\b${name}\\b`).test(text)) || "stone";
+    const dimensions = text.match(/\b(\d{1,2})\s*(?:[x×]|by)\s*(\d{1,2})\b/);
+    const width = dimensions ? Math.max(1, Math.min(20, Number(dimensions[1]))) : 8;
+    const depth = dimensions ? Math.max(1, Math.min(20, Number(dimensions[2]))) : 8;
+    const originX = Math.floor((24 - width) / 2);
+    const originZ = Math.floor((24 - depth) / 2);
+
+    if (/\b(tree|trees)\b/.test(text)) {
+      return {
+        message: "Here’s a small tree using the World Builder API. It checks empty cells before placing leaves so the canopy doesn’t overwrite existing blocks.",
+        code: `const [width, height, depth] = api.size;\nconst x = Math.floor(width / 2);\nconst z = Math.floor(depth / 2);\nconst trunkBase = Math.min(height - 5, 5);\n\nfor (let y = trunkBase; y < trunkBase + 4; y++) {\n  api.setBlock(x, y, z, "wood");\n}\nfor (let dx = -2; dx <= 2; dx++) {\n  for (let dz = -2; dz <= 2; dz++) {\n    for (let dy = 3; dy <= 5; dy++) {\n      const leafX = x + dx;\n      const leafY = trunkBase + dy;\n      const leafZ = z + dz;\n      if (leafY < height && Math.abs(dx) + Math.abs(dz) + Math.abs(dy - 4) <= 3\n          && !api.getBlock(leafX, leafY, leafZ)) {\n        api.setBlock(leafX, leafY, leafZ, "leaves");\n      }\n    }\n  }\n}`
+      };
+    }
+    if (/\b(wall|walls)\b/.test(text)) {
+      return {
+        message: `This makes a centered ${block} wall. Change the height or width constants to adjust its size.`,
+        code: `const [worldWidth, worldHeight] = api.size;\nconst wallWidth = ${width};\nconst wallHeight = Math.min(6, worldHeight);\nconst startX = Math.floor((worldWidth - wallWidth) / 2);\nconst z = Math.floor(api.size[2] / 2);\n\nfor (let x = startX; x < startX + wallWidth; x++) {\n  for (let y = 0; y < wallHeight; y++) {\n    api.setBlock(x, y, z, "${block}");\n  }\n}`
+      };
+    }
+    return {
+      message: `This builds a centered ${width} × ${depth} ${block} platform. Blocks are saved to your local World Builder world when the script runs.`,
+      code: `const [worldWidth, worldHeight, worldDepth] = api.size;\nconst platformY = Math.min(worldHeight - 1, 8);\nconst startX = ${originX};\nconst startZ = ${originZ};\n\nfor (let x = startX; x < startX + ${width}; x++) {\n  for (let z = startZ; z < startZ + ${depth}; z++) {\n    api.setBlock(x, platformY, z, "${block}");\n  }\n}\nconsole.log("Built a ${width} x ${depth} ${block} platform at y =", platformY);`
+    };
+  }
+
+  function checkCurrentCode() {
+    const notes = [];
+    try {
+      new Function("api", "console", editor.value);
+      notes.push("No JavaScript syntax errors detected.");
+    } catch (error) {
+      notes.push(`Syntax error: ${error.message}`);
+    }
+    const usedMethods = [...editor.value.matchAll(/\bapi\.([A-Za-z_$][\w$]*)/g)]
+      .map(match => match[1])
+      .filter((method, index, methods) => methods.indexOf(method) === index);
+    const unknownMethods = usedMethods.filter(method => !gameApiMethodNames.has(method) && !gameApiPropertyNames.has(method));
+    const gameMethods = usedMethods.filter(method => gameApiMethodNames.has(method) && !["getBlock", "setBlock"].includes(method));
+    if (unknownMethods.length) notes.push(`This editor provides api.size, api.blocks, api.getBlock(), and api.setBlock(). Check: ${unknownMethods.map(method => `api.${method}()`).join(", ")}.`);
+    if (gameMethods.length) notes.push(`Official GameApi methods are documented completions but aren't simulated here: ${gameMethods.map(method => `api.${method}()`).join(", ")}. Run these scripts in Bloxd's GameApi environment.`);
+    if (/\bworld\s*\./.test(editor.value)) notes.push("This editor uses the 3D api object; use api.size and api.getBlock() / api.setBlock() instead of world.");
+    if (!notes.some(note => note.startsWith("Syntax error")) && !unknownMethods.length && !/\bworld\s*\./.test(editor.value)) {
+      notes.push("Remember that setBlock coordinates must be inside the world bounds and block names must match the palette.");
+    }
+    return notes.join("\n");
+  }
+
+  function explainCurrentCode() {
+    const code = editor.value;
+    const points = [];
+    if (/\bapi\.size\b/.test(code)) points.push("Reads the world dimensions from api.size.");
+    if (/\bapi\.getBlock\s*\(/.test(code)) points.push("Reads existing blocks with api.getBlock(x, y, z).");
+    if (/\bapi\.setBlock\s*\(/.test(code)) points.push("Places or changes blocks with api.setBlock(x, y, z, blockName).");
+    if (/\bfor\s*\(/.test(code)) points.push("Uses one or more loops to repeat work over coordinates.");
+    if (/\bif\s*\(/.test(code)) points.push("Uses a condition to decide whether code should run.");
+    if (/\bconsole\.(?:log|info|warn|error)\s*\(/.test(code)) points.push("Writes progress or results to Console output when you run it.");
+    if (!points.length) return "I don’t see any of the common world API or control-flow patterns in the current editor. Select a script and ask me to explain a specific part.";
+    return points.join("\n");
+  }
+
+  function addAssistantMessage(role, text, code = "") {
+    document.getElementById("assistant-welcome").hidden = true;
+    const message = document.createElement("article");
+    message.className = `assistant-message ${role}`;
+    const label = document.createElement("span");
+    label.className = "assistant-message-label";
+    label.textContent = role === "user" ? "You" : "Assistant · Local";
+    const body = document.createElement("p");
+    body.textContent = text;
+    message.append(label, body);
+    if (code) {
+      const pre = document.createElement("pre");
+      pre.className = "assistant-code";
+      const codeElement = document.createElement("code");
+      codeElement.textContent = code;
+      pre.append(codeElement);
+      const insert = document.createElement("button");
+      insert.type = "button";
+      insert.className = "assistant-insert";
+      insert.textContent = "Insert into editor";
+      insert.addEventListener("click", () => {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.setRangeText(code, start, end, "end");
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+        editor.focus();
+        saveState.textContent = "Assistant code inserted.";
+      });
+      message.append(pre, insert);
+    }
+    assistantConversation.append(message);
+    assistantConversation.scrollTop = assistantConversation.scrollHeight;
+  }
+
+  function respondToAssistant(request) {
+    const normalized = request.toLowerCase();
+    if (/\b(check|debug|error|fix|problem|review|validate)\b/.test(normalized)) {
+      return { message: checkCurrentCode() };
+    }
+    if (/\b(explain|what does|how does|walk me through)\b/.test(normalized)) {
+      return { message: explainCurrentCode() };
+    }
+    if (/\b(generate|build|create|make|write|platform|wall|tree)\b/.test(normalized)) {
+      return makeCodeReply(request);
+    }
+    return {
+      message: "I can help with scripts using api.size, api.blocks, api.getBlock(x, y, z), and api.setBlock(x, y, z, \"stone\"). Try “Create a gold platform”, “Explain my code”, or “Check my code”. This built-in assistant uses local recipes rather than a connected cloud model."
+    };
+  }
+
+  document.getElementById("assistant-form").addEventListener("submit", event => {
+    event.preventDefault();
+    const request = assistantInput.value.trim();
+    if (!request) return;
+    addAssistantMessage("user", request);
+    assistantInput.value = "";
+    const response = respondToAssistant(request);
+    addAssistantMessage("bot", response.message, response.code);
+  });
+  document.querySelectorAll(".assistant-prompts [data-prompt]").forEach(button => {
+    button.addEventListener("click", () => {
+      assistantInput.value = button.dataset.prompt;
+      document.getElementById("assistant-form").requestSubmit();
+    });
+  });
+  document.getElementById("assistant-new-chat").addEventListener("click", () => {
+    assistantConversation.replaceChildren(document.getElementById("assistant-welcome"));
+    document.getElementById("assistant-welcome").hidden = false;
+    assistantInput.value = "";
+    assistantInput.focus();
+  });
+  assistantInput.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      document.getElementById("assistant-form").requestSubmit();
+    }
+  });
+</script>
+</body>
+</html>
