@@ -4,7 +4,7 @@ A zero-dependency browser toolkit for Bloxd worlds. The app includes the World B
 
 ## Run locally
 
-Run `docker compose -f docker-compose.base44.yml up -d`, then open <http://christynege4-creator.github.io/BloxdBuilder/>.
+Run `docker compose -f docker-compose.base44.yml up -d`, then open <https://christynege4-creator.github.io/BloxdBuilder/>.
 
 The Workshop is at `/workshop`, with sections at `/workshop#tpacks`, `/workshop#mods`, and `/workshop#schematics`. World schematics download with Bloxd's `.bloxdschem` file extension; these local World Builder schematics contain JSON and can be imported in the World Builder or Workshop. Workshop files are processed in the browser; JavaScript mod drafts are saved but not executed.
 
